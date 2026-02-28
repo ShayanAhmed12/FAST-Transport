@@ -5,3 +5,23 @@ Students will register for transport services each semester, select routes and s
 The system will maintain semester-wise transport fee verification records (simulated ERP integration), archive historical transport data, and provide analytical dashboards to support planning and decision-making.
 
 Developed using Django, Django REST Framework, React.js, and PostgreSQL, the system follows a three-tier architecture and Agile Scrum methodology. The project aims to enhance transparency, reduce administrative workload, and improve overall transport service efficiency at FAST-NUCES Karachi Campus.
+
+
+To setup the project, do the following after cloning repository:
+
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+
+psql -U postgres
+CREATE DATABASE fasttransportdb; \q
+
+python manage.py migrate --settings=config.settings.dev
+python manage.py runserver --settings=config.settings.dev
+
+Now, in a separate terminal:
+
+cd frontend
+npm install
+npm start
