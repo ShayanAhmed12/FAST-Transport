@@ -1,0 +1,26 @@
+# =====================
+# Backend - Django
+# =====================
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.env
+
+# =====================
+# Frontend - React
+# =====================
+frontend/node_modules/
+frontend/build/
+
+# =====================
+# General
+# =====================
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
