@@ -58,7 +58,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'fasttransportdb',
         'USER': 'postgres',
-        'PASSWORD': 'fast123',
+        'PASSWORD': 'Pubgpro1',
         'HOST': 'localhost',
         'PORT': '5432',
     }
