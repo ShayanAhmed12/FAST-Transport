@@ -1,4 +1,9 @@
-from rest_framework import viewsets
+
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from .serializers import StudentProfileCreateSerializer
+from rest_framework import viewsets,permissions
 from .permissions import (
     IsAdmin,
     IsStudent,
@@ -170,3 +175,15 @@ class NotificationViewSet(viewsets.ModelViewSet):
         if user.groups.filter(name="Student").exists():
             return Notification.objects.filter(user=user)
         return Notification.objects.all()
+
+
+class StudentSignupView(generics.CreateAPIView):
+    serializer_class = StudentProfileCreateSerializer
+    permission_classes = [AllowAny]  # <-- allow anyone to access
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Student registered successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

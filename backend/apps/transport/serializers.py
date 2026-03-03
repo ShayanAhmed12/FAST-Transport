@@ -171,3 +171,28 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = '__all__'
         read_only_fields = ['created_at']
+
+# Serializer for creating User + StudentProfile together
+class StudentProfileCreateSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True)
+    email = serializers.EmailField(write_only=True)
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = ['username', 'email', 'password', 'roll_number', 'department', 'batch', 'phone', 'address']
+
+    def create(self, validated_data):
+        from django.contrib.auth.models import User
+
+        username = validated_data.pop('username')
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+
+        # Create Django User
+        user = User.objects.create_user(username=username, email=email, password=password)
+
+        # Create StudentProfile linked to this user
+        profile = StudentProfile.objects.create(user=user, **validated_data)
+        return profile
+            

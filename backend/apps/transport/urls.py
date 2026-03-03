@@ -1,8 +1,12 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import *
-
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.urls import path
+from .views import StudentSignupView
 router = DefaultRouter()
 
+# Existing ViewSets
 router.register(r'students', StudentProfileViewSet)
 router.register(r'semesters', SemesterViewSet)
 router.register(r'routes', RouteViewSet)
@@ -20,4 +24,11 @@ router.register(r'route-change-requests', RouteChangeRequestViewSet)
 router.register(r'maintenance-schedules', MaintenanceScheduleViewSet)
 router.register(r'notifications', NotificationViewSet)
 
-urlpatterns = router.urls
+# New explicit API endpoints
+
+
+urlpatterns = [
+    path('signup/', StudentSignupView.as_view(), name='student-signup'),
+]
+
+urlpatterns += router.urls

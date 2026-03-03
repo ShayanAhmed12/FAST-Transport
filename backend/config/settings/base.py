@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'apps.fees',
     'apps.notifications',
     'rest_framework',
+    'rest_framework_simplejwt',
 ]
 
 REST_FRAMEWORK = {
