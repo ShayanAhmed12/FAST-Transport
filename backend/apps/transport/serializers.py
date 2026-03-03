@@ -22,7 +22,7 @@ from .models import (
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_active']
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
@@ -31,27 +31,34 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class SemesterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Semester
         fields = '__all__'
+        read_only_fields = ['created_at']
 
 
 class RouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Route
         fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class StopSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stop
         fields = '__all__'
+        read_only_fields = ['created_at']
 
 
 class RouteStopSerializer(serializers.ModelSerializer):
+    route = RouteSerializer(read_only=True)
+    stop = StopSerializer(read_only=True)
+
     class Meta:
         model = RouteStop
         fields = '__all__'
@@ -61,63 +68,106 @@ class BusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bus
         fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class DriverSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class RouteAssignmentSerializer(serializers.ModelSerializer):
+    route = RouteSerializer(read_only=True)
+    bus = BusSerializer(read_only=True)
+    driver = DriverSerializer(read_only=True)
+    semester = SemesterSerializer(read_only=True)
+
     class Meta:
         model = RouteAssignment
         fields = '__all__'
+        read_only_fields = ['created_at']
 
 
 class SemesterRegistrationSerializer(serializers.ModelSerializer):
+    student = StudentProfileSerializer(read_only=True)
+    semester = SemesterSerializer(read_only=True)
+    route = RouteSerializer(read_only=True)
+    stop = StopSerializer(read_only=True)
+
     class Meta:
         model = SemesterRegistration
         fields = '__all__'
+        read_only_fields = ['registered_at', 'updated_at']
 
 
 class SeatAllocationSerializer(serializers.ModelSerializer):
+    registration = SemesterRegistrationSerializer(read_only=True)
+    route_assignment = RouteAssignmentSerializer(read_only=True)
+
     class Meta:
         model = SeatAllocation
         fields = '__all__'
+        read_only_fields = ['allocated_at']
 
 
 class WaitlistSerializer(serializers.ModelSerializer):
+    registration = SemesterRegistrationSerializer(read_only=True)
     class Meta:
         model = Waitlist
         fields = '__all__'
-
+        read_only_fields = ['added_at']
 
 class FeeVerificationSerializer(serializers.ModelSerializer):
+    student = StudentProfileSerializer(read_only=True)
+    semester = SemesterSerializer(read_only=True)
+    verified_by = UserSerializer(read_only=True)
+
     class Meta:
         model = FeeVerification
         fields = '__all__'
+        read_only_fields = ['created_at', 'verified_at']
 
 
 class ComplaintSerializer(serializers.ModelSerializer):
+    submitted_by = UserSerializer(read_only=True)
+    semester = SemesterSerializer(read_only=True)
+    route = RouteSerializer(read_only=True)
+    resolved_by = UserSerializer(read_only=True)
+
     class Meta:
         model = Complaint
         fields = '__all__'
+        read_only_fields = ['created_at', 'resolved_at']
 
 
 class RouteChangeRequestSerializer(serializers.ModelSerializer):
+    registration = SemesterRegistrationSerializer(read_only=True)
+    current_route = RouteSerializer(read_only=True)
+    requested_route = RouteSerializer(read_only=True)
+    requested_stop = StopSerializer(read_only=True)
+
     class Meta:
         model = RouteChangeRequest
         fields = '__all__'
+        read_only_fields = ['requested_at', 'resolved_at']
 
 
 class MaintenanceScheduleSerializer(serializers.ModelSerializer):
+    bus = BusSerializer(read_only=True)
+    created_by = UserSerializer(read_only=True)
+
     class Meta:
         model = MaintenanceSchedule
         fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at', 'completed_date']
 
 
 class NotificationSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
     class Meta:
         model = Notification
         fields = '__all__'
+        read_only_fields = ['created_at']
