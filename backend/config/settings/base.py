@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'apps.maintenance',
     'apps.fees',
     'apps.notifications',
+    'rest_framework',
 ]
 
 
