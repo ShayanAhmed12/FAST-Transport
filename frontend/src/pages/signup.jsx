@@ -31,7 +31,7 @@ function Signup() {
 
     const data = await response.json();
     if (response.ok) {
-      navigate("/"); // go to login page
+      navigate("/dashboard"); // go to dashboard page
     } else {
       setError(JSON.stringify(data));
     }
