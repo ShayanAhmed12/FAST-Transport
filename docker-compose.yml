@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15
+    container_name: fasttransport_db
+    environment:
+      POSTGRES_DB: fasttransportdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Pubgpro1
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fasttransport_backend
+    command: sh -c "python manage.py collectstatic --noinput --settings=config.settings.dev && python manage.py migrate --settings=config.settings.dev && python manage.py runserver 0.0.0.0:8000 --settings=config.settings.dev"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=db
+      - DATABASE_NAME=fasttransportdb
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=Pubgpro1
+      - DATABASE_PORT=5432
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fasttransport_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
