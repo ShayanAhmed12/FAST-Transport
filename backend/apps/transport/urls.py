@@ -29,6 +29,7 @@ router.register(r'notifications', NotificationViewSet)
 urlpatterns = [
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
     path('user/', CurrentUserView.as_view(), name='current-user'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
 ]
 
 urlpatterns += router.urls

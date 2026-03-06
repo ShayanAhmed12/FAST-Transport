@@ -10,31 +10,40 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    const response = await fetch("http://127.0.0.1:8000/api/token/", {
+    const tokenResponse = await fetch("http://127.0.0.1:8000/api/token/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
     });
 
-    const data = await response.json();
+    const tokenData = await tokenResponse.json();
 
-    if (response.ok) {
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
-      navigate("/dashboard");
-    } else {
+    if (!tokenResponse.ok) {
       setError("Invalid username or password");
+      return;
+    }
+
+    localStorage.setItem("access", tokenData.access);
+    localStorage.setItem("refresh", tokenData.refresh);
+
+    // Fetch user role to decide which dashboard to show
+    const userResponse = await fetch("http://127.0.0.1:8000/api/user/", {
+      headers: { Authorization: `Bearer ${tokenData.access}` },
+    });
+
+    if (userResponse.ok) {
+      const userData = await userResponse.json();
+      localStorage.setItem("is_staff", userData.is_staff ? "true" : "false");
+      navigate(userData.is_staff ? "/staff-dashboard" : "/student-dashboard");
+    } else {
+      // Fallback if user endpoint fails
+      navigate("/student-dashboard");
     }
   };
 
   return (
     <div style={{ width: "300px", margin: "100px auto" }}>
-      <h2>Student Login</h2>
+      <h2>Login</h2>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
