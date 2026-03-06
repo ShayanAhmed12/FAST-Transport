@@ -20,9 +20,16 @@ from .models import (
 )
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_active']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_active', 'role']
+
+    def get_role(self, obj):
+        if obj.is_staff:
+            return "Admin"
+        return "Student"
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):

@@ -2,8 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.urls import path
-from .views import StudentSignupView
+from .views import StudentSignupView, CurrentUserView
 router = DefaultRouter()
 
 # Existing ViewSets
@@ -29,6 +28,7 @@ router.register(r'notifications', NotificationViewSet)
 
 urlpatterns = [
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
+    path('user/', CurrentUserView.as_view(), name='current-user'),
 ]
 
 urlpatterns += router.urls
