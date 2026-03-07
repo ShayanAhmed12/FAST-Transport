@@ -60,17 +60,34 @@ function StaffDashboard() {
       <p style={{ color: "#666" }}>Overview of the transport system</p>
 
       <div style={gridStyle}>
-        {statCards.map((card, i) => (
-          <StatCard key={i} label={card.label} value={card.value} color={card.color} />
-        ))}
+       {statCards.map((card, i) => (
+  <StatCard
+    key={i}
+    label={card.label}
+    value={card.value}
+    color={card.color}
+    onClick={() => {
+      if (card.label === "Total Students") {
+        navigate("/students");
+      }
+    }}
+  />
+))}
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, color }) {
+function StatCard({ label, value, color, onClick }) {
   return (
-    <div style={{ ...cardStyle, borderTop: `4px solid ${color}` }}>
+    <div
+      onClick={onClick}
+      style={{
+        ...cardStyle,
+        borderTop: `4px solid ${color}`,
+        cursor: "pointer"
+      }}
+    >
       <div style={{ fontSize: "2.2rem", fontWeight: "bold", color }}>{value}</div>
       <div style={{ marginTop: "6px", color: "#555", fontSize: "0.95rem" }}>{label}</div>
     </div>

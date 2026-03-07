@@ -1,10 +1,11 @@
-import { useState } from "react";
+// import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/home";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
 import StudentDashboard from "./pages/StudentDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
+import Students from "./pages/students";
 
 // Redirect old /dashboard route based on stored role
 function DashboardRedirect() {
@@ -54,6 +55,7 @@ function App() {
             <StaffDashboard />
           </StaffRoute>
         } />
+        <Route path="/students" element={<Students />} />
       </Routes>
     </BrowserRouter>
   );

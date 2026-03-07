@@ -1,4 +1,5 @@
-
+from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -299,3 +300,20 @@ class DashboardView(APIView):
             serializer.save()
             return Response({"message": "Student registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+def students_list(request):
+    students = StudentProfile.objects.select_related("user").all()
+
+    data = []
+    for s in students:
+        data.append({
+            "id": s.id,
+            "username": s.user.username,
+            "email": s.user.email,
+            "roll_number": s.roll_number,
+            "department": s.department,
+            "batch": s.batch,
+            "phone": s.phone
+        })
+
+    return Response(data)

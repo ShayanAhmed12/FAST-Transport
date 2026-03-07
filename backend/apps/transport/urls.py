@@ -22,7 +22,7 @@ router.register(r'complaints', ComplaintViewSet)
 router.register(r'route-change-requests', RouteChangeRequestViewSet)
 router.register(r'maintenance-schedules', MaintenanceScheduleViewSet)
 router.register(r'notifications', NotificationViewSet)
-
+from .views import students_list
 # New explicit API endpoints
 
 
@@ -30,6 +30,7 @@ urlpatterns = [
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
     path('user/', CurrentUserView.as_view(), name='current-user'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path("students/", students_list),
 ]
 
 urlpatterns += router.urls
