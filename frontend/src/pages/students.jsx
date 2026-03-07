@@ -35,8 +35,8 @@ function Students() {
           {students.map((s) => (
             <tr key={s.id}>
                <td>{s.id}</td>
-               <td>{s.username}</td>
-               <td>{s.email}</td>
+               <td>{s.user.username}</td>
+               <td>{s.user.email}</td>
                <td>{s.roll_number}</td>
                <td>{s.batch}</td>
                <td>{s.department}</td>
