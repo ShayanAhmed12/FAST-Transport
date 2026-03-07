@@ -86,15 +86,66 @@ class DriverSerializer(serializers.ModelSerializer):
 
 
 class RouteAssignmentSerializer(serializers.ModelSerializer):
-    route = RouteSerializer(read_only=True)
+
+    route = RouteSerializer(read_only=True)  # READ (for responses)
     bus = BusSerializer(read_only=True)
     driver = DriverSerializer(read_only=True)
     semester = SemesterSerializer(read_only=True)
 
+    route_id = serializers.PrimaryKeyRelatedField(  # WRITE (for requests)
+        queryset=Route.objects.all(),
+        source="route",
+        write_only=True
+    )
+
+    bus_id = serializers.PrimaryKeyRelatedField(
+        queryset=Bus.objects.all(),
+        source="bus",
+        write_only=True
+    )
+
+    driver_id = serializers.PrimaryKeyRelatedField(
+        queryset=Driver.objects.all(),
+        source="driver",
+        write_only=True
+    )
+
+    semester_id = serializers.PrimaryKeyRelatedField(
+        queryset=Semester.objects.all(),
+        source="semester",
+        write_only=True
+    )
+
+    def validate(self, data):  #prevents twice assignment in 1 sem
+
+        bus = data.get("bus")
+        driver = data.get("driver")
+        semester = data.get("semester")
+
+        if RouteAssignment.objects.filter(
+            bus=bus,
+            semester=semester,
+            is_active=True
+        ).exists():
+            raise serializers.ValidationError(
+                "This bus is already assigned in this semester."
+            )
+
+        if RouteAssignment.objects.filter(
+            driver=driver,
+            semester=semester,
+            is_active=True
+        ).exists():
+            raise serializers.ValidationError(
+                "This driver is already assigned in this semester."
+            )
+
+        return data
+
     class Meta:
         model = RouteAssignment
-        fields = '__all__'
-        read_only_fields = ['created_at']
+        fields = "__all__"
+        read_only_fields = ["created_at"]
 
 
 class SemesterRegistrationSerializer(serializers.ModelSerializer):

@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import StudentSignupView, CurrentUserView
+
 router = DefaultRouter()
 
 # Existing ViewSets
@@ -26,11 +27,11 @@ from .views import students_list
 # New explicit API endpoints
 
 
-urlpatterns = [
+urlpatterns = router.urls + [
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
     path('user/', CurrentUserView.as_view(), name='current-user'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
-    path("students/", students_list),
-]
-
-urlpatterns += router.urls
+    path("students-list/", students_list),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+] 

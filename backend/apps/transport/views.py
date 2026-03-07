@@ -8,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import viewsets,permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .permissions import (
     IsAdmin,
     IsStudent,
@@ -87,9 +89,31 @@ class SemesterViewSet(viewsets.ModelViewSet):
 
 
 class RouteViewSet(viewsets.ModelViewSet):
-    queryset = Route.objects.all()
+    queryset = Route.objects.filter(is_active=True)
     serializer_class = RouteSerializer
     permission_classes = [IsAdminOrReadOnly] # Admin full access, Students read only
+
+    @action(detail=True, methods=["get"])
+    def details(self, request, pk=None):
+
+        route = self.get_object()
+
+        assignment = RouteAssignment.objects.filter(
+            route=route,
+            is_active=True
+        ).select_related("bus", "driver").first()
+
+        if not assignment:
+            return Response({"message": "No assignment yet"})
+
+        data = {
+            "route": route.name,
+            "bus": assignment.bus.bus_number,
+            "driver": assignment.driver.name,
+            "capacity": assignment.bus.capacity
+        }
+
+        return Response(data)
 
 
 class StopViewSet(viewsets.ModelViewSet):
@@ -105,19 +129,50 @@ class RouteStopViewSet(viewsets.ModelViewSet):
 
 
 class BusViewSet(viewsets.ModelViewSet):
-    queryset = Bus.objects.all()
+    queryset = Bus.objects.filter(is_active=True)
     serializer_class = BusSerializer
     permission_classes = [IsAdmin] # Only Admin full access
 
+    @action(detail=False, methods=["get"])
+    def available(self, request):
+
+        assigned = RouteAssignment.objects.filter(
+            is_active=True
+        ).values_list("bus_id", flat=True)
+
+        buses = Bus.objects.exclude(id__in=assigned)
+
+        serializer = self.get_serializer(buses, many=True)
+
+        return Response(serializer.data)
+
 
 class DriverViewSet(viewsets.ModelViewSet):
-    queryset = Driver.objects.all()
+    queryset = Driver.objects.filter(is_available=True)
     serializer_class = DriverSerializer
     permission_classes = [IsAdmin] # Only Admin full access
 
+    @action(detail=False, methods=["get"])
+    def available(self, request):
+
+        assigned = RouteAssignment.objects.filter(
+            is_active=True
+        ).values_list("driver_id", flat=True)
+
+        drivers = Driver.objects.exclude(id__in=assigned)
+
+        serializer = self.get_serializer(drivers, many=True)
+
+        return Response(serializer.data)
+
 
 class RouteAssignmentViewSet(viewsets.ModelViewSet):
-    queryset = RouteAssignment.objects.all()
+    queryset = RouteAssignment.objects.filter(is_active=True).select_related(
+        "route",
+        "bus",
+        "driver",
+        "semester"
+    )
     serializer_class = RouteAssignmentSerializer
     permission_classes = [IsAdmin] # Only Admin full access
 
@@ -198,7 +253,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
 class StudentSignupView(generics.CreateAPIView):
     serializer_class = StudentProfileCreateSerializer
-    permission_classes = [AllowAny]  # <-- allow anyone to access
+    permission_classes = [AllowAny]  # allow anyone to access
 
 
 class DashboardView(APIView):
