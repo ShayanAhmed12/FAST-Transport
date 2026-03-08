@@ -41,15 +41,15 @@ function StaffDashboard() {
   const { stats } = data;
 
   const statCards = [
-    { label: "Total Students", value: stats.total_students, color: "#4a90d9" },
-    { label: "Active Buses", value: stats.active_buses, color: "#5cb85c" },
-    { label: "Active Routes", value: stats.active_routes, color: "#5bc0de" },
-    { label: "Route Assignments", value: stats.active_route_assignments, color: "#9b59b6" },
-    { label: "Pending Complaints", value: stats.pending_complaints, color: "#e67e22" },
-    { label: "Route Change Requests", value: stats.open_route_change_requests, color: "#e74c3c" },
-    { label: "Unverified Fees", value: stats.unverified_fees, color: "#f0ad4e" },
-    { label: "Pending Maintenance", value: stats.pending_maintenance, color: "#c0392b" },
-  ];
+  { label: "Total Students", value: stats.total_students, color: "#4a90d9", path: "/students" },
+  { label: "Active Buses", value: stats.active_buses, color: "#5cb85c", path: "/buses" },
+  { label: "Active Routes", value: stats.active_routes, color: "#5bc0de", path: "/routes" },
+  { label: "Route Assignments", value: stats.active_route_assignments, color: "#9b59b6", path: "/route-assignments" },
+  { label: "Pending Complaints", value: stats.pending_complaints, color: "#e67e22", path: "/complaints" },
+  { label: "Route Change Requests", value: stats.open_route_change_requests, color: "#e74c3c", path: "/routechangerequests" },
+  { label: "Unverified Fees", value: stats.unverified_fees, color: "#f0ad4e", path: "/feeverifications" },
+  { label: "Pending Maintenance", value: stats.pending_maintenance, color: "#c0392b", path: "/maintenance" },
+];
 
   return (
     <div style={{ maxWidth: "900px", margin: "40px auto", fontFamily: "sans-serif" }}>
@@ -66,11 +66,7 @@ function StaffDashboard() {
     label={card.label}
     value={card.value}
     color={card.color}
-    onClick={() => {
-      if (card.label === "Total Students") {
-        navigate("/students");
-      }
-    }}
+    onClick={() => navigate(card.path)}
   />
 ))}
       </div>

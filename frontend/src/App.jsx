@@ -6,6 +6,10 @@ import Signup from "./pages/signup";
 import StudentDashboard from "./pages/StudentDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
 import Students from "./pages/students";
+import Bus from "./pages/bus";
+import Driver from "./pages/driver";
+import RoutePage from "./pages/route";
+import RouteAssignment from "./pages/RouteAssignment";
 
 // Redirect old /dashboard route based on stored role
 function DashboardRedirect() {
@@ -56,6 +60,10 @@ function App() {
           </StaffRoute>
         } />
         <Route path="/students" element={<Students />} />
+        <Route path="/buses" element={<Bus />} />
+        <Route path="/drivers" element={<Driver />} />
+        <Route path="/routes" element={<RoutePage />} />
+        <Route path="/route-assignments" element={<RouteAssignment />} />
       </Routes>
     </BrowserRouter>
   );
