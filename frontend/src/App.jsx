@@ -1,20 +1,21 @@
-// import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/home";
-import Login from "./pages/login";
-import Signup from "./pages/signup";
-import StudentDashboard from "./pages/StudentDashboard";
-import StaffDashboard from "./pages/StaffDashboard";
-import Students from "./pages/students";
-import Bus from "./pages/bus";
-import Driver from "./pages/driver";
-import RoutePage from "./pages/route";
-import RouteAssignment from "./pages/RouteAssignment";
+import Login from "./pages/auth/login";
+import Signup from "./pages/auth/signup";
+import AdminDashboard from "./pages/admin/dashboard";
+import StudentsPage from "./pages/admin/students";
+import BusesPage from "./pages/admin/buses";
+import DriversPage from "./pages/admin/drivers";
+import RoutesPage from "./pages/admin/routes";
+import AssignmentsPage from "./pages/admin/assignments";
+import StudentDashboard from "./pages/student/dashboard";
+import StudentTransport from "./pages/student/transport";
+import StudentComplaints from "./pages/student/complaints";
 
-// Redirect old /dashboard route based on stored role
+// Redirect /dashboard based on stored role
 function DashboardRedirect() {
   const isStaff = localStorage.getItem("is_staff") === "true";
-  return <Navigate to={isStaff ? "/staff-dashboard" : "/student-dashboard"} replace />;
+  return <Navigate to={isStaff ? "/admin/dashboard" : "/student/dashboard"} replace />;
 }
 
 // Protect any route that requires authentication
@@ -28,7 +29,7 @@ function StaffRoute({ children }) {
   const token = localStorage.getItem("access");
   const isStaff = localStorage.getItem("is_staff") === "true";
   if (!token) return <Navigate to="/login" replace />;
-  if (!isStaff) return <Navigate to="/student-dashboard" replace />;
+  if (!isStaff) return <Navigate to="/student/dashboard" replace />;
   return children;
 }
 
@@ -37,7 +38,7 @@ function StudentRoute({ children }) {
   const token = localStorage.getItem("access");
   const isStaff = localStorage.getItem("is_staff") === "true";
   if (!token) return <Navigate to="/login" replace />;
-  if (isStaff) return <Navigate to="/staff-dashboard" replace />;
+  if (isStaff) return <Navigate to="/admin/dashboard" replace />;
   return children;
 }
 
@@ -49,21 +50,19 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<PrivateRoute><DashboardRedirect /></PrivateRoute>} />
-        <Route path="/student-dashboard" element={
-          <StudentRoute>
-            <StudentDashboard />
-          </StudentRoute>
-        } />
-        <Route path="/staff-dashboard" element={
-          <StaffRoute>
-            <StaffDashboard />
-          </StaffRoute>
-        } />
-        <Route path="/students" element={<Students />} />
-        <Route path="/buses" element={<Bus />} />
-        <Route path="/drivers" element={<Driver />} />
-        <Route path="/routes" element={<RoutePage />} />
-        <Route path="/route-assignments" element={<RouteAssignment />} />
+
+        {/* Student routes */}
+        <Route path="/student/dashboard" element={<StudentRoute><StudentDashboard /></StudentRoute>} />
+        <Route path="/student/transport" element={<StudentRoute><StudentTransport /></StudentRoute>} />
+        <Route path="/student/complaints" element={<StudentRoute><StudentComplaints /></StudentRoute>} />
+
+        {/* Admin routes */}
+        <Route path="/admin/dashboard" element={<StaffRoute><AdminDashboard /></StaffRoute>} />
+        <Route path="/admin/students" element={<StaffRoute><StudentsPage /></StaffRoute>} />
+        <Route path="/admin/buses" element={<StaffRoute><BusesPage /></StaffRoute>} />
+        <Route path="/admin/drivers" element={<StaffRoute><DriversPage /></StaffRoute>} />
+        <Route path="/admin/routes" element={<StaffRoute><RoutesPage /></StaffRoute>} />
+        <Route path="/admin/assignments" element={<StaffRoute><AssignmentsPage /></StaffRoute>} />
       </Routes>
     </BrowserRouter>
   );

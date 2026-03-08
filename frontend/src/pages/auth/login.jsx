@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getToken, getUser } from "../../services/transportService";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -9,35 +10,17 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    try {
+      const tokenRes = await getToken({ username, password });
+      localStorage.setItem("access", tokenRes.data.access);
+      localStorage.setItem("refresh", tokenRes.data.refresh);
 
-    const tokenResponse = await fetch("http://127.0.0.1:8000/api/token/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const tokenData = await tokenResponse.json();
-
-    if (!tokenResponse.ok) {
+      const userRes = await getUser();
+      localStorage.setItem("is_staff", userRes.data.is_staff ? "true" : "false");
+      navigate(userRes.data.is_staff ? "/admin/dashboard" : "/student/dashboard");
+    } catch {
       setError("Invalid username or password");
-      return;
-    }
-
-    localStorage.setItem("access", tokenData.access);
-    localStorage.setItem("refresh", tokenData.refresh);
-
-    // Fetch user role to decide which dashboard to show
-    const userResponse = await fetch("http://127.0.0.1:8000/api/user/", {
-      headers: { Authorization: `Bearer ${tokenData.access}` },
-    });
-
-    if (userResponse.ok) {
-      const userData = await userResponse.json();
-      localStorage.setItem("is_staff", userData.is_staff ? "true" : "false");
-      navigate(userData.is_staff ? "/staff-dashboard" : "/student-dashboard");
-    } else {
-      // Fallback if user endpoint fails
-      navigate("/student-dashboard");
     }
   };
 

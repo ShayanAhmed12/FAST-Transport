@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signup } from "../../services/transportService";
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -22,18 +23,11 @@ function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-
-    const response = await fetch("http://127.0.0.1:8000/api/signup/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      navigate("/dashboard"); // go to dashboard page
-    } else {
-      setError(JSON.stringify(data));
+    try {
+      await signup(formData);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(JSON.stringify(err.response?.data || "Signup failed"));
     }
   };
 

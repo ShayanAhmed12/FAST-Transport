@@ -1,0 +1,110 @@
+import { useEffect, useState } from "react";
+import Navbar from "../../components/Navbar";
+import Sidebar from "../../components/Sidebar";
+import { getDashboard } from "../../services/transportService";
+
+function StatusBadge({ status }) {
+  const colors = {
+    Pending: "#f0ad4e",
+    Approved: "#5cb85c",
+    Rejected: "#d9534f",
+    Active: "#5cb85c",
+  };
+  return (
+    <span
+      style={{
+        background: colors[status] || "#aaa",
+        color: "#fff",
+        padding: "2px 8px",
+        borderRadius: "4px",
+        fontSize: "0.85em",
+      }}
+    >
+      {status}
+    </span>
+  );
+}
+
+function StudentTransport() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getDashboard()
+      .then((res) => setData(res.data))
+      .catch(() => setError("Failed to load transport data."));
+  }, []);
+
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (!data) return <p>Loading...</p>;
+
+  const { active_registration, seat, waitlist_position, fee_summary } = data;
+
+  return (
+    <div style={{ display: "flex" }}>
+      <Sidebar role="student" />
+      <div style={{ flex: 1 }}>
+        <Navbar title="My Transport" />
+        <div style={{ padding: "24px", maxWidth: "800px" }}>
+          <h1>My Transport</h1>
+
+          <section style={cardStyle}>
+            <h2>Current Semester Registration</h2>
+            {active_registration ? (
+              <>
+                <p><strong>Semester:</strong> {active_registration.semester}</p>
+                <p><strong>Route:</strong> {active_registration.route}</p>
+                <p><strong>Stop:</strong> {active_registration.stop}</p>
+                <p><strong>Status:</strong> <StatusBadge status={active_registration.status} /></p>
+                {seat && <p><strong>Seat Number:</strong> {seat.seat_number}</p>}
+                {waitlist_position && <p><strong>Waitlist Position:</strong> #{waitlist_position}</p>}
+              </>
+            ) : (
+              <p>No active registration found.</p>
+            )}
+          </section>
+
+          <section style={cardStyle}>
+            <h2>Fee Summary</h2>
+            {fee_summary?.length > 0 ? (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Semester</th>
+                    <th style={thStyle}>Amount</th>
+                    <th style={thStyle}>Challan #</th>
+                    <th style={thStyle}>Verified</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fee_summary.map((f, i) => (
+                    <tr key={i}>
+                      <td style={tdStyle}>{f.semester}</td>
+                      <td style={tdStyle}>Rs. {f.amount}</td>
+                      <td style={tdStyle}>{f.challan_number}</td>
+                      <td style={tdStyle}>{f.is_verified ? "Yes" : "No"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No fee records found.</p>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const cardStyle = {
+  border: "1px solid #ddd",
+  borderRadius: "8px",
+  padding: "16px",
+  marginBottom: "20px",
+};
+
+const thStyle = { background: "#f5f5f5", textAlign: "left", padding: "8px", border: "1px solid #ddd" };
+const tdStyle = { padding: "8px", border: "1px solid #ddd" };
+
+export default StudentTransport;
