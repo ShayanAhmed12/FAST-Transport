@@ -27,11 +27,17 @@ function StopsPage() {
       return;
     }
     try {
-      await createStop(form);
+      const payload = Object.fromEntries(
+        Object.entries(form).filter(([, v]) => v !== "")
+      );
+      await createStop(payload);
       setForm({ name: "", latitude: "", longitude: "", address: "" });
       fetchStops();
-    } catch {
-      alert("Failed to add stop. Make sure you are admin.");
+    } catch (err) {
+      const detail = err.response?.data
+        ? JSON.stringify(err.response.data)
+        : err.message;
+      alert(`Failed to add stop: ${detail}`);
     }
   };
 

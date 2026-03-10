@@ -116,26 +116,57 @@ class RouteAssignmentSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
-    def validate(self, data):  #prevents twice assignment in 1 sem
+    def validate(self, data):
+        instance = self.instance
 
-        bus = data.get("bus")
-        driver = data.get("driver")
-        semester = data.get("semester")
+        # Resolve fields: prefer incoming data, fall back to existing instance values
+        bus = data.get("bus") or (instance.bus if instance else None)
+        driver = data.get("driver") or (instance.driver if instance else None)
+        semester = data.get("semester") or (instance.semester if instance else None)
+        route = data.get("route") or (instance.route if instance else None)
 
-        if RouteAssignment.objects.filter(
+        # If is_active is being set to True, ensure all related objects are active
+        is_active = data.get("is_active", instance.is_active if instance else None)
+        if is_active:
+            if route and not route.is_active:
+                raise serializers.ValidationError(
+                    "Cannot activate assignment: the route is inactive."
+                )
+            if bus and not bus.is_active:
+                raise serializers.ValidationError(
+                    "Cannot activate assignment: the bus is inactive."
+                )
+            if driver and not driver.is_available:
+                raise serializers.ValidationError(
+                    "Cannot activate assignment: the driver is unavailable."
+                )
+            if semester and not semester.is_active:
+                raise serializers.ValidationError(
+                    "Cannot activate assignment: the semester is inactive."
+                )
+
+        # Prevent duplicate bus+semester assignment (skip current instance on update)
+        qs_bus = RouteAssignment.objects.filter(
             bus=bus,
             semester=semester,
             is_active=True
-        ).exists():
+        )
+        if instance:
+            qs_bus = qs_bus.exclude(pk=instance.pk)
+        if bus and semester and is_active and qs_bus.exists():
             raise serializers.ValidationError(
                 "This bus is already assigned in this semester."
             )
 
-        if RouteAssignment.objects.filter(
+        # Prevent duplicate driver+semester assignment
+        qs_driver = RouteAssignment.objects.filter(
             driver=driver,
             semester=semester,
             is_active=True
-        ).exists():
+        )
+        if instance:
+            qs_driver = qs_driver.exclude(pk=instance.pk)
+        if driver and semester and is_active and qs_driver.exists():
             raise serializers.ValidationError(
                 "This driver is already assigned in this semester."
             )

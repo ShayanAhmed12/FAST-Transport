@@ -89,7 +89,7 @@ class SemesterViewSet(viewsets.ModelViewSet):
 
 
 class RouteViewSet(viewsets.ModelViewSet):
-    queryset = Route.objects.filter(is_active=True)
+    queryset = Route.objects.all()
     serializer_class = RouteSerializer
     permission_classes = [IsAdminOrReadOnly] # Admin full access, Students read only
 
@@ -129,7 +129,7 @@ class RouteStopViewSet(viewsets.ModelViewSet):
 
 
 class BusViewSet(viewsets.ModelViewSet):
-    queryset = Bus.objects.filter(is_active=True)
+    queryset = Bus.objects.all()
     serializer_class = BusSerializer
     permission_classes = [IsAdmin] # Only Admin full access
 
@@ -148,7 +148,7 @@ class BusViewSet(viewsets.ModelViewSet):
 
 
 class DriverViewSet(viewsets.ModelViewSet):
-    queryset = Driver.objects.filter(is_available=True)
+    queryset = Driver.objects.all()
     serializer_class = DriverSerializer
     permission_classes = [IsAdmin] # Only Admin full access
 
@@ -167,7 +167,7 @@ class DriverViewSet(viewsets.ModelViewSet):
 
 
 class RouteAssignmentViewSet(viewsets.ModelViewSet):
-    queryset = RouteAssignment.objects.filter(is_active=True).select_related(
+    queryset = RouteAssignment.objects.all().select_related(
         "route",
         "bus",
         "driver",
