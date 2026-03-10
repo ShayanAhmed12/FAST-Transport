@@ -34,7 +34,7 @@ services:
       - DATABASE_NAME=fasttransportdb
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=Pubgpro1
-      - DATABASE_PORT=5433
+      - DATABASE_PORT=5432
 
   frontend:
     build:
