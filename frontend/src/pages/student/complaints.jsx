@@ -8,16 +8,17 @@ function StudentComplaints() {
   const [complaints, setComplaints] = useState([]);
   const [form, setForm] = useState({ subject: "", description: "", priority: "Medium" });
 
-  useEffect(() => {
-    fetchComplaints();
-  }, []);
-
+ 
   const fetchComplaints = () =>
     getComplaints()
       .then((res) => setComplaints(res.data))
       .catch(() => alert("Failed to fetch complaints."));
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+   useEffect(() => {
+    fetchComplaints();
+  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

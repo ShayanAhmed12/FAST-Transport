@@ -8,9 +8,7 @@ function DriversPage() {
   const [drivers, setDrivers] = useState([]);
   const [form, setForm] = useState({ name: "", cnic: "", license_no: "", phone: "", address: "" });
 
-  useEffect(() => {
-    fetchDrivers();
-  }, []);
+ 
 
   const fetchDrivers = () =>
     getDrivers()
@@ -18,6 +16,10 @@ function DriversPage() {
       .catch(() => alert("Failed to fetch drivers."));
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+   useEffect(() => {
+    fetchDrivers();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

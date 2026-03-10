@@ -19,7 +19,15 @@ function AssignmentsPage() {
   const [semesters, setSemesters] = useState([]);
   const [form, setForm] = useState({ route: "", bus: "", driver: "", semester: "" });
 
-  useEffect(() => {
+ 
+
+  const fetchAssignments = () =>
+    getAssignments()
+      .then((res) => setAssignments(res.data))
+      .catch(() => alert("Failed to fetch assignments."));
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+   useEffect(() => {
     fetchAssignments();
     Promise.all([getRoutes(), getBuses(), getDrivers(), getSemesters()])
       .then(([r, b, d, s]) => {
@@ -30,13 +38,6 @@ function AssignmentsPage() {
       })
       .catch(() => alert("Failed to fetch dropdown data."));
   }, []);
-
-  const fetchAssignments = () =>
-    getAssignments()
-      .then((res) => setAssignments(res.data))
-      .catch(() => alert("Failed to fetch assignments."));
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -8,9 +8,7 @@ function BusesPage() {
   const [buses, setBuses] = useState([]);
   const [form, setForm] = useState({ bus_number: "", capacity: "", model: "" });
 
-  useEffect(() => {
-    fetchBuses();
-  }, []);
+  
 
   const fetchBuses = () =>
     getBuses()
@@ -18,6 +16,9 @@ function BusesPage() {
       .catch(() => alert("Failed to fetch buses."));
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  useEffect(() => {
+    fetchBuses();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

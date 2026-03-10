@@ -24,3 +24,6 @@ export const getSemesters = () => api.get("/api/semesters/");
 
 export const getComplaints = () => api.get("/api/complaints/");
 export const createComplaint = (data) => api.post("/api/complaints/", data);
+
+export const getStops = () => api.get("/api/stops/");
+export const createStop = (data) => api.post("/api/stops/", data);

@@ -8,9 +8,7 @@ function RoutesPage() {
   const [routes, setRoutes] = useState([]);
   const [form, setForm] = useState({ name: "", description: "" });
 
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
+  
 
   const fetchRoutes = () =>
     getRoutes()
@@ -18,6 +16,9 @@ function RoutesPage() {
       .catch(() => alert("Failed to fetch routes."));
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
