@@ -63,12 +63,15 @@ class StopSerializer(serializers.ModelSerializer):
 
 
 class RouteStopSerializer(serializers.ModelSerializer):
-    route = RouteSerializer(read_only=True)
-    stop = StopSerializer(read_only=True)
+    route_name = serializers.CharField(source="route.name", read_only=True)
+    stop_name = serializers.CharField(source="stop.name", read_only=True)
+
+    route = serializers.PrimaryKeyRelatedField(queryset=Route.objects.all())
+    stop = serializers.PrimaryKeyRelatedField(queryset=Stop.objects.all())
 
     class Meta:
         model = RouteStop
-        fields = '__all__'
+        fields = ["id", "route", "stop", "stop_order", "morning_eta", "evening_eta", "route_name", "stop_name"]
 
 
 class BusSerializer(serializers.ModelSerializer):

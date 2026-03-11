@@ -33,3 +33,7 @@ export const createComplaint = (data) => api.post("/api/complaints/", data);
 
 export const getStops = () => api.get("/api/stops/");
 export const createStop = (data) => api.post("/api/stops/", data);
+
+export const getRouteStops = () => api.get("/api/routestops/");
+export const createRouteStop = (data) => api.post("/api/routestops/", data);
+export const deleteRouteStop = (id) => api.delete(`/api/routestops/${id}/`);

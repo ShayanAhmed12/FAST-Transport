@@ -13,6 +13,7 @@ import StudentTransport from "./pages/student/transport";
 import StudentComplaints from "./pages/student/complaints";
 import StopsPage from "./pages/admin/stops";
 import SemestersPage from "./pages/admin/semesters";
+import RouteStopsPage from "./pages/admin/routestops";
 
 
 // Redirect /dashboard based on stored role
@@ -68,6 +69,7 @@ function App() {
         <Route path="/admin/assignments" element={<StaffRoute><AssignmentsPage /></StaffRoute>} />
         <Route path="/admin/stops" element={<StaffRoute><StopsPage /></StaffRoute>} />
         <Route path="/admin/semesters" element={<StaffRoute><SemestersPage /></StaffRoute>} />
+         <Route path="/admin/routestop" element={<StaffRoute><RouteStopsPage /></StaffRoute>} />
       </Routes>
     </BrowserRouter>
   );
