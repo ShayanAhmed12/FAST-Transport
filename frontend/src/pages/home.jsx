@@ -1,25 +1,215 @@
 import { useNavigate } from "react-router-dom";
+import { MeshGradient } from "@paper-design/shaders-react";
 
 function Home() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ textAlign: "center", marginTop: "100px" }}>
-      <h1>Welcome to FAST Transport</h1>
-      <button 
-        style={{ margin: "10px", padding: "10px 20px" }} 
-        onClick={() => navigate("/login")}
-      >
-        Login
-      </button>
-      <button 
-        style={{ margin: "10px", padding: "10px 20px" }} 
-        onClick={() => navigate("/signup")}
-      >
-        Signup
-      </button>
+    <div style={styles.root}>
+      <MeshGradient
+  style={styles.shader}
+  colors={["#000000", "#ffffff", "#333333", "#888888"]}
+  distortion={0.5}
+  swirl={0.3}
+  speed={0.5}
+/>
+
+      <div style={styles.grain} />
+
+      <div style={styles.container}>
+        {/* Logo */}
+        <div style={styles.logoMark}>
+          <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+            <rect x="2" y="8" width="24" height="12" rx="2" stroke="white" strokeWidth="1.5" />
+            <circle cx="8" cy="22" r="3" fill="white" />
+            <circle cx="20" cy="22" r="3" fill="white" />
+            <path d="M2 12h6l2-4h8l2 4" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+        </div>
+
+        {/* Eyebrow */}
+        <p style={styles.eyebrow}>FAST NUCES · Karachi Campus</p>
+
+        {/* Headline */}
+        <h1 style={styles.headline}>
+          Student Transport<br />
+          <span style={styles.headlineDim}>Made Simple</span>
+        </h1>
+
+        {/* Subtext */}
+        <p style={styles.sub}>
+          Track your bus, manage your route, and stay on schedule —<br />
+          all in one place.
+        </p>
+
+        {/* CTA Buttons */}
+        <div style={styles.actions}>
+          <button
+            style={styles.btnPrimary}
+            onClick={() => navigate("/login")}
+            onMouseEnter={(e) => Object.assign(e.target.style, styles.btnPrimaryHover)}
+            onMouseLeave={(e) => Object.assign(e.target.style, styles.btnPrimary)}
+          >
+            Sign In
+          </button>
+          <button
+            style={styles.btnSecondary}
+            onClick={() => navigate("/signup")}
+            onMouseEnter={(e) => Object.assign(e.target.style, styles.btnSecondaryHover)}
+            onMouseLeave={(e) => Object.assign(e.target.style, styles.btnSecondary)}
+          >
+            Create Account
+          </button>
+        </div>
+
+        {/* Bottom note */}
+        <p style={styles.note}>
+          © {new Date().getFullYear()} FAST-NUCES · Transport Management System
+        </p>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  root: {
+    position: "relative",
+    width: "100vw",
+    height: "100vh",
+    overflow: "hidden",
+    background: "#000",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+  },
+  shader: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 0,
+  },
+  grain: {
+    position: "absolute",
+    inset: 0,
+    zIndex: 1,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "repeat",
+    backgroundSize: "128px 128px",
+    pointerEvents: "none",
+  },
+  container: {
+    position: "relative",
+    zIndex: 2,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    textAlign: "center",
+    gap: "20px",
+    padding: "0 24px",
+    maxWidth: "540px",
+    width: "100%",
+  },
+  logoMark: {
+    width: "72px",
+    height: "72px",
+    borderRadius: "20px",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backdropFilter: "blur(8px)",
+    marginBottom: "4px",
+  },
+  eyebrow: {
+    margin: 0,
+    fontSize: "11px",
+    letterSpacing: "0.18em",
+    color: "rgba(255,255,255,0.3)",
+    textTransform: "uppercase",
+    fontWeight: 500,
+  },
+  headline: {
+    margin: 0,
+    fontSize: "clamp(36px, 7vw, 58px)",
+    fontWeight: 700,
+    color: "#ffffff",
+    letterSpacing: "-0.04em",
+    lineHeight: 1.1,
+  },
+  headlineDim: {
+    color: "rgba(255,255,255,0.3)",
+  },
+  sub: {
+    margin: 0,
+    fontSize: "15px",
+    color: "rgba(255,255,255,0.4)",
+    lineHeight: 1.7,
+    maxWidth: "380px",
+  },
+  actions: {
+    display: "flex",
+    gap: "12px",
+    marginTop: "8px",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  btnPrimary: {
+    background: "#fff",
+    color: "#000",
+    border: "none",
+    borderRadius: "10px",
+    padding: "13px 32px",
+    fontSize: "14px",
+    fontWeight: 600,
+    cursor: "pointer",
+    letterSpacing: "-0.01em",
+    transition: "background 0.2s",
+  },
+  btnPrimaryHover: {
+    background: "#e0e0e0",
+    color: "#000",
+    border: "none",
+    borderRadius: "10px",
+    padding: "13px 32px",
+    fontSize: "14px",
+    fontWeight: 600,
+    cursor: "pointer",
+    letterSpacing: "-0.01em",
+  },
+  btnSecondary: {
+    background: "rgba(255,255,255,0.07)",
+    color: "rgba(255,255,255,0.8)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "10px",
+    padding: "13px 32px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    letterSpacing: "-0.01em",
+    backdropFilter: "blur(8px)",
+    transition: "background 0.2s",
+  },
+  btnSecondaryHover: {
+    background: "rgba(255,255,255,0.12)",
+    color: "rgba(255,255,255,0.95)",
+    border: "1px solid rgba(255,255,255,0.2)",
+    borderRadius: "10px",
+    padding: "13px 32px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    letterSpacing: "-0.01em",
+    backdropFilter: "blur(8px)",
+  },
+  note: {
+    marginTop: "20px",
+    fontSize: "11px",
+    color: "rgba(255,255,255,0.15)",
+    letterSpacing: "0.03em",
+  },
+};
 
 export default Home;
