@@ -3,7 +3,7 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = 'your-secret-key'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'change-me-in-production-use-a-long-random-string-at-least-32-chars!!')
 
 DEBUG = True
 

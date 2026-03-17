@@ -235,6 +235,9 @@ class ComplaintViewSet(viewsets.ModelViewSet):
             return Complaint.objects.filter(submitted_by=user)
         return Complaint.objects.all()
 
+    def perform_create(self, serializer):
+        serializer.save(submitted_by=self.request.user)
+
 
 class RouteChangeRequestViewSet(viewsets.ModelViewSet):
     queryset = RouteChangeRequest.objects.all()

@@ -145,8 +145,8 @@ class FeeVerification(models.Model):
 
 class Complaint(models.Model):
     submitted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="complaints_submitted")
-    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
-    route = models.ForeignKey(Route, on_delete=models.CASCADE)
+    semester = models.ForeignKey(Semester, on_delete=models.SET_NULL, null=True, blank=True)
+    route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
     category = models.CharField(max_length=20, default="General")
     subject = models.CharField(max_length=200, default="N/A")
     description = models.TextField(default="N/A")
