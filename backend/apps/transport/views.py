@@ -150,19 +150,28 @@ class BusViewSet(viewsets.ModelViewSet):
 class DriverViewSet(viewsets.ModelViewSet):
     queryset = Driver.objects.all()
     serializer_class = DriverSerializer
-    permission_classes = [IsAdmin] # Only Admin full access
+    permission_classes = [IsAdmin]  # keeps admin-only for all other actions
+
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def public_detail(self, request, pk=None):
+        try:
+            driver = Driver.objects.get(pk=pk)
+            return Response({
+                "name": driver.name,
+                "phone": driver.phone,
+                "license_number": driver.license_no,
+                "is_available": driver.is_available,
+            })
+        except Driver.DoesNotExist:
+            return Response({"error": "Driver not found"}, status=404)
 
     @action(detail=False, methods=["get"])
     def available(self, request):
-
         assigned = RouteAssignment.objects.filter(
             is_active=True
         ).values_list("driver_id", flat=True)
-
         drivers = Driver.objects.exclude(id__in=assigned)
-
         serializer = self.get_serializer(drivers, many=True)
-
         return Response(serializer.data)
 
 

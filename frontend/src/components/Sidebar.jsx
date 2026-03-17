@@ -16,6 +16,7 @@ const studentLinks = [
   { to: "/student/dashboard", label: "Dashboard" },
   { to: "/student/transport", label: "My Transport" },
   { to: "/student/complaints", label: "Complaints" },
+  { to: "/student/routes", label: "View Routes" },
 ];
 
 function Sidebar({ role = "student" }) {

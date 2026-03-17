@@ -68,10 +68,43 @@ class RouteStopSerializer(serializers.ModelSerializer):
 
     route = serializers.PrimaryKeyRelatedField(queryset=Route.objects.all())
     stop = serializers.PrimaryKeyRelatedField(queryset=Stop.objects.all())
+    bus_number = serializers.SerializerMethodField()
+    driver_name = serializers.SerializerMethodField()
+    driver_id = serializers.SerializerMethodField()
 
     class Meta:
         model = RouteStop
-        fields = ["id", "route", "stop", "stop_order", "morning_eta", "evening_eta", "route_name", "stop_name"]
+        fields = [
+            "id",
+            "route",
+            "stop",
+            "stop_order",
+            "morning_eta",
+            "evening_eta",
+            "route_name",
+            "stop_name",
+            "bus_number",
+            "driver_name",
+            "driver_id",
+        ]
+
+    def get_bus_number(self, obj):
+        assignment = obj.route.routeassignment_set.filter(is_active=True).first()
+        if assignment and assignment.bus:
+            return assignment.bus.bus_number
+        return None
+
+
+    def get_driver_name(self, obj):
+        assignment = obj.route.routeassignment_set.filter(is_active=True).first()
+        if assignment and assignment.driver:
+            return assignment.driver.name
+        return None
+    def get_driver_id(self, obj):                      # ← add this method
+        assignment = obj.route.routeassignment_set.filter(is_active=True).first()
+        if assignment and assignment.driver:
+            return assignment.driver.id
+        return None
 
 
 class BusSerializer(serializers.ModelSerializer):
