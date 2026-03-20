@@ -74,7 +74,7 @@ function ViewRoutes() {
           <div style={topBarStyle}>
             <h2 style={{ margin: 0 }}>Available Routes</h2>
             <div style={searchWrapperStyle}>
-              <span>🔍</span>
+          
               <input
                 type="text"
                 placeholder="Search by stop, bus number or driver..."
@@ -108,7 +108,7 @@ function ViewRoutes() {
                 <div style={headingRowStyle}>
                   <h3 style={{ margin: 0 }}>{routeName}</h3>
                   <div style={badgeRowStyle}>
-                    <span style={badgeStyle}>🚌 {busNumber}</span>
+                    <span style={badgeStyle}>{busNumber}</span>
                     <span
                       style={{ ...badgeStyle, ...driverClickableStyle }}
                       onClick={() => handleDriverClick(driverId, driverName)}
@@ -170,9 +170,9 @@ function ViewRoutes() {
               <p style={{ textAlign: "center", color: "#ef4444" }}>{selectedDriver.error}</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <DetailRow icon="📞" label="Phone" value={selectedDriver.phone} />
-                <DetailRow icon="🪪" label="License No." value={selectedDriver.license_number} />
-                <DetailRow icon="✅" label="Available" value={selectedDriver.is_available ? "Yes" : "No"} />
+                <DetailRow  label="Phone" value={selectedDriver.phone} />
+                <DetailRow  label="License No." value={selectedDriver.license_number} />
+                <DetailRow  label="Available" value={selectedDriver.is_available ? "Yes" : "No"} />
               
               </div>
             )}
