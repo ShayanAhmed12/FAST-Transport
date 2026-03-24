@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets,permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from .permissions import (
     IsAdmin,
     IsStudent,
@@ -32,7 +34,8 @@ from .models import (
     Complaint,
     RouteChangeRequest,
     MaintenanceSchedule,
-    Notification
+    Notification,
+    TransportRegistration
 )
 
 from .serializers import (
@@ -53,7 +56,8 @@ from .serializers import (
     RouteChangeRequestSerializer,
     MaintenanceScheduleSerializer,
     NotificationSerializer,
-    StudentProfileCreateSerializer
+    StudentProfileCreateSerializer,
+    TransportRegistrationSerializer
 )
 
 class CurrentUserView(APIView):
@@ -198,6 +202,33 @@ class SemesterRegistrationViewSet(viewsets.ModelViewSet):
             return SemesterRegistration.objects.filter(student=student_profile)
         return SemesterRegistration.objects.all()
 
+class TransportRegistrationViewSet(viewsets.ModelViewSet):
+    queryset = TransportRegistration.objects.all()
+    serializer_class = TransportRegistrationSerializer
+    permission_classes = [IsStudentCreateOnly]
+
+    def perform_create(self, serializer):
+        profile = StudentProfile.objects.get(user=self.request.user)
+
+        stop = serializer.validated_data["stop"]
+        semester = serializer.validated_data["semester"]
+
+        # Auto-find route from stop
+        route_stop = RouteStop.objects.filter(stop=stop).first()
+
+        if not route_stop:
+            raise ValidationError("No route found for this stop")
+
+        serializer.save(
+            student=profile,
+            route=route_stop.route,  # AUTO ASSIGNED
+            semester=semester
+        )
+
+    def get_serializer(self, *args, **kwargs):
+        serializer = super().get_serializer(*args, **kwargs)
+        print("FIELDS BEING USED:", serializer.fields.keys())
+        return serializer
 
 class SeatAllocationViewSet(viewsets.ModelViewSet):
     queryset = SeatAllocation.objects.all()

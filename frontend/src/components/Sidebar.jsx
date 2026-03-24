@@ -6,10 +6,10 @@ const adminLinks = [
   { to: "/admin/buses", label: "Buses" },
   { to: "/admin/drivers", label: "Drivers" },
   { to: "/admin/routes", label: "Routes" },
-  { to: "/admin/assignments", label: "Assignments" },
   { to: "/admin/stops", label: "Stops" },
-  { to: "/admin/semesters", label: "Semesters" },
   { to: "/admin/routestop", label: "Route Stops" },
+  { to: "/admin/semesters", label: "Semesters" },
+  { to: "/admin/assignments", label: "Assignments" },
 ];
 
 const studentLinks = [
@@ -17,6 +17,7 @@ const studentLinks = [
   { to: "/student/transport", label: "My Transport" },
   { to: "/student/complaints", label: "Complaints" },
   { to: "/student/routes", label: "View Routes" },
+  { to: "/student/transport-registrations", label: "Register Transport" },
 ];
 
 function Sidebar({ role = "student" }) {

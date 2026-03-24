@@ -112,6 +112,24 @@ class SemesterRegistration(models.Model):
 
     def __str__(self):
         return f"{self.student.roll_number} - {self.semester.name}"
+    
+class TransportRegistration(models.Model):
+    STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("Approved", "Approved"),
+        ("Rejected", "Rejected"),
+    ]
+
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
+    stop = models.ForeignKey(Stop, on_delete=models.CASCADE)
+
+    # Route will be auto-assigned
+    route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class SeatAllocation(models.Model):
     registration = models.ForeignKey(SemesterRegistration, on_delete=models.CASCADE)

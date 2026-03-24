@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Route, Bus, Driver, Semester, RouteAssignment
+from .models import Route, Bus, Driver, Semester, RouteAssignment, FeeVerification, SemesterRegistration
+from .seatallocation import allocate_seat_for_student
 
 
 def _deactivate_assignments(**filter_kwargs):
@@ -30,3 +31,19 @@ def deactivate_on_driver_unavailable(sender, instance, **kwargs):
 def deactivate_on_semester_inactive(sender, instance, **kwargs):
     if not instance.is_active:
         _deactivate_assignments(semester=instance)
+
+@receiver(post_save, sender=FeeVerification)
+def handle_fee_verification(sender, instance, created, **kwargs):
+    if instance.is_verified:
+        try:
+            registration = SemesterRegistration.objects.get(
+                student=instance.student,
+                semester=instance.semester
+            )
+
+            # Avoid duplicate allocation
+            if not registration.seatallocation_set.exists():
+                allocate_seat_for_student(registration)
+
+        except SemesterRegistration.DoesNotExist:
+            pass

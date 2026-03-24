@@ -23,6 +23,7 @@ router.register(r'complaints', ComplaintViewSet)
 router.register(r'route-change-requests', RouteChangeRequestViewSet)
 router.register(r'maintenance-schedules', MaintenanceScheduleViewSet)
 router.register(r'notifications', NotificationViewSet)
+router.register(r"transport-registrations", TransportRegistrationViewSet)
 from .views import students_list
 # New explicit API endpoints
 

@@ -41,3 +41,6 @@ export const deleteRouteStop = (id) => api.delete(`/api/routestops/${id}/`);
 export const getDriverByName = (name) =>
   api.get(`/api/drivers/?search=${name}`);
 export const getDriverById = (id) => api.get(`/api/drivers/${id}/public_detail/`)
+
+export const createRegistration = (data) =>
+  api.post("/api/transport-registrations/", data);

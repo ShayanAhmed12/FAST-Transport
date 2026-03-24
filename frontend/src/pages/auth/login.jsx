@@ -59,7 +59,7 @@ function Login() {
 
         <div style={styles.card}>
           <div style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>Welcome back</h2>
+            <h2 style={styles.cardTitle}>Welcome Back</h2>
             <p style={styles.cardDesc}>Sign in to your account</p>
           </div>
 

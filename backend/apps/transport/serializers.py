@@ -16,7 +16,8 @@ from .models import (
     Complaint,
     RouteChangeRequest,
     MaintenanceSchedule,
-    Notification
+    Notification,
+    TransportRegistration
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -226,6 +227,36 @@ class SemesterRegistrationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['registered_at', 'updated_at']
 
+class TransportRegistrationSerializer(serializers.ModelSerializer):
+    route = RouteSerializer(read_only=True)
+
+    stop_id = serializers.PrimaryKeyRelatedField(
+        queryset=Stop.objects.all(),
+        source="stop",
+        write_only=True
+    )
+
+    semester_id = serializers.PrimaryKeyRelatedField(
+        queryset=Semester.objects.all(),
+        source="semester",
+        write_only=True
+    )
+
+    semester = serializers.PrimaryKeyRelatedField(read_only=True)
+    stop = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = TransportRegistration
+        fields = [
+            "id",
+            "semester_id",
+            "stop_id",
+            "semester",
+            "stop",
+            "route",
+            "created_at",
+        ]
+        read_only_fields = ["student", "route", "created_at"]
 
 class SeatAllocationSerializer(serializers.ModelSerializer):
     registration = SemesterRegistrationSerializer(read_only=True)
