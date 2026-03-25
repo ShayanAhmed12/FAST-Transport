@@ -117,6 +117,7 @@ class TransportRegistration(models.Model):
     STATUS_CHOICES = [
         ("Pending", "Pending"),
         ("Approved", "Approved"),
+        ("payment_submitted", "Payment Submitted"),
         ("Rejected", "Rejected"),
     ]
 
@@ -127,7 +128,7 @@ class TransportRegistration(models.Model):
     # Route will be auto-assigned
     route = models.ForeignKey(Route, on_delete=models.SET_NULL, null=True, blank=True)
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="Pending")
 
     created_at = models.DateTimeField(auto_now_add=True)
 

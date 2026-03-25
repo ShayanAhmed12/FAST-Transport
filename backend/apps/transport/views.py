@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import viewsets,permissions
 from rest_framework.decorators import action
@@ -207,28 +208,41 @@ class TransportRegistrationViewSet(viewsets.ModelViewSet):
     serializer_class = TransportRegistrationSerializer
     permission_classes = [IsStudentCreateOnly]
 
+    def get_queryset(self):
+        user = self.request.user
+        profile = StudentProfile.objects.filter(user=user).first()
+
+        if not profile:
+            return TransportRegistration.objects.none()
+
+        return TransportRegistration.objects.filter(student=profile)
+
     def perform_create(self, serializer):
         profile = StudentProfile.objects.get(user=self.request.user)
 
         stop = serializer.validated_data["stop"]
         semester = serializer.validated_data["semester"]
 
-        # Auto-find route from stop
         route_stop = RouteStop.objects.filter(stop=stop).first()
 
         if not route_stop:
             raise ValidationError("No route found for this stop")
 
+        # Check fee verification
+        fee = FeeVerification.objects.filter(
+            student=profile,
+            semester=semester,
+            is_verified=True
+        ).first()
+
+        status = "approved" if fee else "pending"
+
         serializer.save(
             student=profile,
-            route=route_stop.route,  # AUTO ASSIGNED
-            semester=semester
+            route=route_stop.route,
+            semester=semester,
+            status=status
         )
-
-    def get_serializer(self, *args, **kwargs):
-        serializer = super().get_serializer(*args, **kwargs)
-        print("FIELDS BEING USED:", serializer.fields.keys())
-        return serializer
 
 class SeatAllocationViewSet(viewsets.ModelViewSet):
     queryset = SeatAllocation.objects.all()
@@ -253,6 +267,18 @@ class FeeVerificationViewSet(viewsets.ModelViewSet):
     queryset = FeeVerification.objects.all()
     serializer_class = FeeVerificationSerializer
     permission_classes = [IsAdminOrReadOnly] # Admin full access, Students read only
+
+    def verify_fee(fee, admin_user):
+        fee.is_verified = True
+        fee.verified_by = admin_user
+        fee.verified_at = timezone.now()
+        fee.save()
+
+        # Update transport registration
+        TransportRegistration.objects.filter(
+            student=fee.student,
+            semester=fee.semester
+        ).update(status="approved")
 
 
 class ComplaintViewSet(viewsets.ModelViewSet):

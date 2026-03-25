@@ -254,6 +254,7 @@ class TransportRegistrationSerializer(serializers.ModelSerializer):
             "semester",
             "stop",
             "route",
+            "status",
             "created_at",
         ]
         read_only_fields = ["student", "route", "created_at"]
