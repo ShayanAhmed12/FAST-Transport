@@ -18,6 +18,7 @@ const studentLinks = [
   { to: "/student/complaints", label: "Complaints" },
   { to: "/student/routes", label: "View Routes" },
   { to: "/student/transport-registrations", label: "Register Transport" },
+  { to: "/student/challan/", label: "View Challan" },
 ];
 
 function Sidebar({ role = "student" }) {

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
+    Challan,
     StudentProfile,
     Semester,
     Route,
@@ -228,20 +229,20 @@ class SemesterRegistrationSerializer(serializers.ModelSerializer):
         read_only_fields = ['registered_at', 'updated_at']
 
 class TransportRegistrationSerializer(serializers.ModelSerializer):
-    route = RouteSerializer(read_only=True)
+    route_name = serializers.CharField(source='route.name', read_only=True)
+    stop_name = serializers.CharField(source='stop.name', read_only=True)
+    semester_name = serializers.CharField(source='semester.name', read_only=True)
 
     stop_id = serializers.PrimaryKeyRelatedField(
         queryset=Stop.objects.all(),
         source="stop",
         write_only=True
     )
-
     semester_id = serializers.PrimaryKeyRelatedField(
         queryset=Semester.objects.all(),
         source="semester",
         write_only=True
     )
-
     semester = serializers.PrimaryKeyRelatedField(read_only=True)
     stop = serializers.PrimaryKeyRelatedField(read_only=True)
 
@@ -249,13 +250,10 @@ class TransportRegistrationSerializer(serializers.ModelSerializer):
         model = TransportRegistration
         fields = [
             "id",
-            "semester_id",
-            "stop_id",
-            "semester",
-            "stop",
-            "route",
-            "status",
-            "created_at",
+            "semester_id", "stop_id",
+            "semester", "stop",
+            "semester_name", "stop_name", "route_name",
+            "status", "fee_amount", "is_paid", "created_at",
         ]
         read_only_fields = ["student", "route", "created_at"]
 
@@ -275,6 +273,26 @@ class WaitlistSerializer(serializers.ModelSerializer):
         model = Waitlist
         fields = '__all__'
         read_only_fields = ['added_at']
+
+class ChallanSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student.user.username', read_only=True)
+    semester_name = serializers.CharField(source='registration.semester.name', read_only=True)
+    route_name = serializers.CharField(source='registration.route.name', read_only=True)
+    stop_name = serializers.CharField(source='registration.stop.name', read_only=True)
+
+    class Meta:
+        model = Challan
+        fields = [
+            "id",
+            "registration",
+            "student_name",
+            "semester_name",
+            "route_name",
+            "stop_name",
+            "amount",
+            "status",
+            "created_at",
+        ]
 
 class FeeVerificationSerializer(serializers.ModelSerializer):
     student = StudentProfileSerializer(read_only=True)

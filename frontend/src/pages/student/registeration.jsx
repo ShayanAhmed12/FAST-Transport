@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import {
@@ -16,6 +17,7 @@ function TransportRegistration() {
   const [selectedSemester, setSelectedSemester] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadData = async () => {
@@ -77,8 +79,11 @@ function TransportRegistration() {
                 admin review.
               </span>
               <div>
-                <button style={{ ...btnStyle, marginTop: "10px" }}>
-                  Pay Fee (View Instructions)
+                <button
+                  style={{ ...btnStyle, marginTop: "10px" }}
+                  onClick={() => navigate(`/student/challan/${registration.id}`)}
+                >
+                  Pay Fee (View Challan)
                 </button>
               </div>
             </div>

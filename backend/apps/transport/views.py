@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -36,10 +36,12 @@ from .models import (
     RouteChangeRequest,
     MaintenanceSchedule,
     Notification,
-    TransportRegistration
+    TransportRegistration,
+    Challan
 )
 
 from .serializers import (
+    ChallanSerializer,
     UserSerializer,
     StudentProfileSerializer,
     SemesterSerializer,
@@ -216,6 +218,28 @@ class TransportRegistrationViewSet(viewsets.ModelViewSet):
             return TransportRegistration.objects.none()
 
         return TransportRegistration.objects.filter(student=profile)
+    
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def my_registration(self, request):
+        user = request.user
+        profile = StudentProfile.objects.filter(user=user).first()
+
+        if not profile:
+            return Response(
+                {"detail": "Student profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        registration = TransportRegistration.objects.filter(student=profile).first()
+
+        if not registration:
+            return Response(
+                {"detail": "No transport registration found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.get_serializer(registration)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         profile = StudentProfile.objects.get(user=self.request.user)
@@ -224,24 +248,28 @@ class TransportRegistrationViewSet(viewsets.ModelViewSet):
         semester = serializer.validated_data["semester"]
 
         route_stop = RouteStop.objects.filter(stop=stop).first()
-
         if not route_stop:
             raise ValidationError("No route found for this stop")
 
-        # Check fee verification
         fee = FeeVerification.objects.filter(
             student=profile,
             semester=semester,
             is_verified=True
         ).first()
 
-        status = "approved" if fee else "pending"
-
-        serializer.save(
+        reg_status = "Approved" if fee else "Pending"  
+        registration = serializer.save(
             student=profile,
             route=route_stop.route,
             semester=semester,
-            status=status
+            status=reg_status
+        )
+
+        amount = 45000; 
+        Challan.objects.get_or_create(
+            registration=registration,
+            student=profile,
+            defaults={"amount": amount, "status": "unpaid"}
         )
 
 class SeatAllocationViewSet(viewsets.ModelViewSet):
@@ -424,6 +452,8 @@ class DashboardView(APIView):
             serializer.save()
             return Response({"message": "Student registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 def students_list(request):
     students = StudentProfile.objects.select_related("user").all()
@@ -441,3 +471,28 @@ def students_list(request):
         })
 
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_challan(request, pk):
+    try:
+        profile = StudentProfile.objects.get(user=request.user)
+    except StudentProfile.DoesNotExist:
+        return Response({"detail": "Student profile not found"}, status=404)
+
+    try:
+        registration = TransportRegistration.objects.get(id=pk, student=profile)
+    except TransportRegistration.DoesNotExist:
+        return Response({"detail": "Registration not found"}, status=404)
+
+    # Auto-create challan if it was missed during registration
+    challan, created = Challan.objects.get_or_create(
+        registration=registration,
+        student=profile,
+        defaults={
+            "amount": registration.semester.fee if hasattr(registration.semester, "fee") else 0,
+            "status": "unpaid"
+        }
+    )
+    serializer = ChallanSerializer(challan)
+    return Response(serializer.data)

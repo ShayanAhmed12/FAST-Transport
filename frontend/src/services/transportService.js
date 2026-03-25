@@ -44,3 +44,5 @@ export const getDriverById = (id) => api.get(`/api/drivers/${id}/public_detail/`
 export const createRegistration = (data) => api.post("/api/transport-registrations/", data);
 export const getRegistration = () => api.get("/api/transport-registrations/");
 export const updateRegistration = (id, data) => api.patch(`/api/transport-registrations/${id}/`, data);
+
+export const getChallan = (id) => api.get(`/api/transport-registrations/${id}/challan/`);
