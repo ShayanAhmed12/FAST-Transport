@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
-import { getChallan } from "../../services/transportService";
+import { getChallan, payChallan } from "../../services/transportService";
 
 function SuccessCard({ amount, onClose }) {
   return (
@@ -58,7 +58,7 @@ function ChallanPage() {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paid, setPaid] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -67,13 +67,23 @@ function ChallanPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  const handlePay = () => {
-    setPaid(true);
-    setShowSuccess(true);
+  const handlePay = async () => {
+    setPaying(true);
+    try {
+      const res = await payChallan(id);
+      setData(res.data);
+      setShowSuccess(true);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Payment failed");
+    } finally {
+      setPaying(false);
+    }
   };
 
   if (loading) return <p>Loading...</p>;
   if (!data)   return <p>Challan not found</p>;
+
+  const isPaid = data.status === "paid";
 
   return (
     <div style={{ display: "flex" }}>
@@ -101,12 +111,16 @@ function ChallanPage() {
             </ul>
           </div>
 
-          {!data.is_paid && !paid && (
-            <button onClick={handlePay} style={payButtonStyle}>Pay Now</button>
+          {!isPaid && (
+            <button onClick={handlePay} disabled={paying} style={payButtonStyle}>
+              {paying ? "Processing..." : "Pay Now"}
+            </button>
           )}
 
-          {(data.is_paid || paid) && !showSuccess && (
-            <p style={{ color: "#3B6D11", fontWeight: "500" }}>Payment Completed</p>
+          {isPaid && !showSuccess && (
+            <div style={{ background: "#EAF3DE", border: "1px solid #C0DD97", borderRadius: "8px", padding: "12px 16px", fontSize: "14px", color: "#3B6D11" }}>
+              Payment completed — waiting for admin approval.
+            </div>
           )}
         </div>
       </div>

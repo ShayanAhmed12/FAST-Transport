@@ -46,3 +46,4 @@ export const getRegistration = () => api.get("/api/transport-registrations/");
 export const updateRegistration = (id, data) => api.patch(`/api/transport-registrations/${id}/`, data);
 
 export const getChallan = (id) => api.get(`/api/transport-registrations/${id}/challan/`);
+export const payChallan = (registrationId) =>api.post(`/api/transport-registrations/${registrationId}/challan/pay/`);

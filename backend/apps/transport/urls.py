@@ -24,7 +24,7 @@ router.register(r'route-change-requests', RouteChangeRequestViewSet)
 router.register(r'maintenance-schedules', MaintenanceScheduleViewSet)
 router.register(r'notifications', NotificationViewSet)
 router.register(r"transport-registrations", TransportRegistrationViewSet)
-from .views import students_list, get_challan
+from .views import students_list, get_challan, pay_challan
 # New explicit API endpoints
 
 
@@ -34,6 +34,7 @@ urlpatterns = router.urls + [
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path("students-list/", students_list),
     path('transport-registrations/<int:pk>/challan/', get_challan),
+    path("transport-registrations/<int:pk>/challan/pay/", pay_challan),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ] 

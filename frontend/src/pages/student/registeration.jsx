@@ -7,6 +7,7 @@ import {
   getSemesters,
   createRegistration,
   getRegistration,
+  getChallan,
 } from "../../services/transportService";
 
 function TransportRegistration() {
@@ -16,6 +17,7 @@ function TransportRegistration() {
   const [selectedStop, setSelectedStop] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
   const [loading, setLoading] = useState(false);
+  const [challan, setChallan] = useState(null);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -30,6 +32,18 @@ function TransportRegistration() {
         setSemesters(semestersRes.data);
         setStops(stopsRes.data);
         setRegistration(regRes.data?.length > 0 ? regRes.data[0] : null);
+        if (regRes.data && regRes.data.length > 0) {
+          const reg = regRes.data[0];
+          setRegistration(reg);
+          try {
+            const challanRes = await getChallan(reg.id);
+            setChallan(challanRes.data);
+          } catch {
+            setChallan(null);
+          }
+        } else {
+          setRegistration(null);
+        }
       } catch {
         alert("Failed to load data");
       }
@@ -71,21 +85,27 @@ function TransportRegistration() {
           {/* ── Status banners ── */}
           {status === "pending" && (
             <div style={bannerStyle("#fff3cd", "#ffeeba")}>
-              <strong>Registration Pending</strong> — Please pay the transport fee and wait for
-              admin verification.
-              <br />
-              <span style={{ fontSize: "13px", color: "#856404" }}>
-                Pay via bank transfer using your challan number. Your seat will be confirmed after
-                admin review.
-              </span>
-              <div>
-                <button
-                  style={{ ...btnStyle, marginTop: "10px" }}
-                  onClick={() => navigate(`/student/challan/${registration.id}`)}
-                >
-                  Pay Fee (View Challan)
-                </button>
-              </div>
+              {challan?.status === "paid" ? (
+                <>
+                  <strong>Payment Received</strong> — Your payment has been recorded. Waiting for admin verification.
+                </>
+              ) : (
+                <>
+                  <strong>Registration Pending</strong> — Please pay the transport fee and wait for admin verification.
+                  <br />
+                  <span style={{ fontSize: "13px", color: "#856404" }}>
+                    Pay via bank transfer using your challan number. Your seat will be confirmed after admin review.
+                  </span>
+                  <div>
+                    <button
+                      style={{ ...btnStyle, marginTop: "10px" }}
+                      onClick={() => navigate(`/student/challan/${registration.id}`)}
+                    >
+                      Pay Fee (View Challan)
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

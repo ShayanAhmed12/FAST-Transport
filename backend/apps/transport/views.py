@@ -496,3 +496,23 @@ def get_challan(request, pk):
     )
     serializer = ChallanSerializer(challan)
     return Response(serializer.data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def pay_challan(request, pk):
+    profile = StudentProfile.objects.filter(user=request.user).first()
+    if not profile:
+        return Response({"detail": "Profile not found"}, status=404)
+
+    try:
+        challan = Challan.objects.get(registration__id=pk, student=profile)
+    except Challan.DoesNotExist:
+        return Response({"detail": "Challan not found"}, status=404)
+
+    if challan.status == "paid":
+        return Response({"detail": "Already paid"}, status=400)
+
+    challan.status = "paid"
+    challan.save()
+
+    return Response(ChallanSerializer(challan).data)
