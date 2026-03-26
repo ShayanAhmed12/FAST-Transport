@@ -37,7 +37,7 @@ from .models import (
     MaintenanceSchedule,
     Notification,
     TransportRegistration,
-    Challan
+    Challan,
 )
 
 from .serializers import (
@@ -479,12 +479,12 @@ def get_challan(request, pk):
         profile = StudentProfile.objects.get(user=request.user)
     except StudentProfile.DoesNotExist:
         return Response({"detail": "Student profile not found"}, status=404)
-
+ 
     try:
         registration = TransportRegistration.objects.get(id=pk, student=profile)
     except TransportRegistration.DoesNotExist:
         return Response({"detail": "Registration not found"}, status=404)
-
+ 
     # Auto-create challan if it was missed during registration
     challan, created = Challan.objects.get_or_create(
         registration=registration,
@@ -494,8 +494,12 @@ def get_challan(request, pk):
             "status": "unpaid"
         }
     )
-    serializer = ChallanSerializer(challan)
-    return Response(serializer.data)
+ 
+    data = ChallanSerializer(challan).data
+    # ✅ ADDED: expose the registration status so the frontend can show
+    # "waiting for verification" vs "approved" without a separate API call
+    data["registration_status"] = registration.status
+    return Response(data)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -515,4 +519,85 @@ def pay_challan(request, pk):
     challan.status = "paid"
     challan.save()
 
+    # Create or update FeeVerification record
+    fee_verification, _ = FeeVerification.objects.get_or_create(
+        student=profile,
+        semester=challan.registration.semester,
+        defaults={
+            "amount": challan.amount,
+            "challan_number": f"CHN-{challan.id:04d}",
+        }
+    )
+
+    # Notify all admin/staff users
+    admin_users = User.objects.filter(is_staff=True)
+    for admin in admin_users:
+        Notification.objects.create(
+            user=admin,
+            title="Fee Payment Received",
+            message=f"Student {profile.roll_number} has paid transport fees for {challan.registration.semester.name}. Please verify.",
+            type="info"
+        )
+
     return Response(ChallanSerializer(challan).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def verify_fee(request, pk):
+    if not request.user.is_staff:
+        return Response({"detail": "Unauthorized"}, status=403)
+
+    try:
+        fee = FeeVerification.objects.get(pk=pk)
+    except FeeVerification.DoesNotExist:
+        return Response({"detail": "Fee verification not found"}, status=404)
+
+    fee.is_verified = True
+    fee.verified_by = request.user
+    fee.verified_at = timezone.now()
+    fee.save()
+
+    # Approve the transport registration
+    TransportRegistration.objects.filter(
+        student=fee.student,
+        semester=fee.semester
+    ).update(status="approved")
+
+    # Notify the student
+    Notification.objects.create(
+        user=fee.student.user,
+        title="Fee Verified",
+        message=f"Your transport fee for {fee.semester.name} has been verified. Your registration is now approved.",
+        type="info"
+    )
+
+    return Response({"detail": "Fee verified successfully"})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def list_fee_verifications(request):
+    if not request.user.is_staff:
+        return Response({"detail": "Unauthorized"}, status=403)
+
+    fees = FeeVerification.objects.select_related(
+        "student__user", "semester", "verified_by"
+    ).order_by("is_verified", "-created_at")
+
+    data = [
+        {
+            "id": f.id,
+            "roll_number": f.student.roll_number,
+            "student_name": f.student.user.username,
+            "semester": f.semester.name,
+            "amount": str(f.amount),
+            "challan_number": f.challan_number,
+            "is_verified": f.is_verified,
+            "verified_by": f.verified_by.username if f.verified_by else None,
+            "verified_at": f.verified_at,
+            "created_at": f.created_at,
+        }
+        for f in fees
+    ]
+    return Response(data)

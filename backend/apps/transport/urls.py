@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import StudentSignupView, CurrentUserView
-
+from .views import students_list, get_challan, pay_challan, verify_fee, list_fee_verifications
 router = DefaultRouter()
 
 # Existing ViewSets
@@ -24,11 +24,12 @@ router.register(r'route-change-requests', RouteChangeRequestViewSet)
 router.register(r'maintenance-schedules', MaintenanceScheduleViewSet)
 router.register(r'notifications', NotificationViewSet)
 router.register(r"transport-registrations", TransportRegistrationViewSet)
-from .views import students_list, get_challan, pay_challan
+
 # New explicit API endpoints
 
 
-urlpatterns = router.urls + [
+urlpatterns = [
+    # Explicit paths FIRST
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
     path('user/', CurrentUserView.as_view(), name='current-user'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
@@ -37,4 +38,6 @@ urlpatterns = router.urls + [
     path("transport-registrations/<int:pk>/challan/pay/", pay_challan),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-] 
+    path("fee-verifications/list/", list_fee_verifications),
+    path("fee-verifications/<int:pk>/verify/", verify_fee),
+] + router.urls

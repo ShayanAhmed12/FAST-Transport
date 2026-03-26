@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -60,12 +60,32 @@ function ChallanPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const pollRef = useRef(null);
 
+  const fetchChallan = () =>
+    getChallan(id)
+      .then((res) => setData(res.data))
+      .catch(() => {});
+
+  // Initial load
   useEffect(() => {
     getChallan(id)
       .then((res) => { setData(res.data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [id]);
+
+  // Poll every 10 seconds while status is "paid" but not yet "approved"
+  useEffect(() => {
+    const isPaidNotApproved = data?.status === "paid" && data?.registration_status !== "approved";
+
+    if (isPaidNotApproved) {
+      pollRef.current = setInterval(fetchChallan, 10000);
+    } else {
+      clearInterval(pollRef.current);
+    }
+
+    return () => clearInterval(pollRef.current);
+  }, [data?.status, data?.registration_status]);
 
   const handlePay = async () => {
     setPaying(true);
@@ -83,7 +103,8 @@ function ChallanPage() {
   if (loading) return <p>Loading...</p>;
   if (!data)   return <p>Challan not found</p>;
 
-  const isPaid = data.status === "paid";
+  const isPaid     = data.status === "paid";
+  const isApproved = data.registration_status === "approved";
 
   return (
     <div style={{ display: "flex" }}>
@@ -111,15 +132,40 @@ function ChallanPage() {
             </ul>
           </div>
 
+          {/* Unpaid — show Pay button */}
           {!isPaid && (
             <button onClick={handlePay} disabled={paying} style={payButtonStyle}>
               {paying ? "Processing..." : "Pay Now"}
             </button>
           )}
 
-          {isPaid && !showSuccess && (
-            <div style={{ background: "#EAF3DE", border: "1px solid #C0DD97", borderRadius: "8px", padding: "12px 16px", fontSize: "14px", color: "#3B6D11" }}>
-              Payment completed — waiting for admin approval.
+          {/* Paid but not yet verified */}
+          {isPaid && !isApproved && !showSuccess && (
+            <div style={waitingBannerStyle}>
+              <span style={{ fontSize: "18px" }}>🕐</span>
+              <div>
+                <p style={{ margin: 0, fontWeight: "500", fontSize: "14px", color: "#92400e" }}>
+                  Waiting for admin verification
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#b45309" }}>
+                  Page refreshes automatically every 10 seconds.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Paid and approved */}
+          {isPaid && isApproved && (
+            <div style={approvedBannerStyle}>
+            
+              <div>
+                <p style={{ margin: 0, fontWeight: "600", fontSize: "14px", color: "#166534" }}>
+                  Fee Verified &amp; Registration Approved
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#15803d" }}>
+                  Your transport registration is now active for this semester.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -144,11 +190,13 @@ function DetailRow({ label, value }) {
   );
 }
 
-const cardStyle     = { border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "20px" };
-const payButtonStyle = { padding: "10px 20px", background: "#639922", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px" };
-const doneButtonStyle = { width: "100%", padding: "10px", background: "#639922", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "500", cursor: "pointer", animation: "fadeUp 0.4s ease 0.8s both" };
-const overlayStyle  = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 };
-const successCardStyle = { background: "#fff", borderRadius: "16px", padding: "2.5rem 2rem", maxWidth: "320px", width: "90%", textAlign: "center", animation: "popIn 0.5s cubic-bezier(.34,1.56,.64,1) both" };
-const iconWrapStyle = { width: "80px", height: "80px", margin: "0 auto 1.5rem" };
+const cardStyle          = { border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "20px" };
+const payButtonStyle     = { padding: "10px 20px", background: "#639922", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px" };
+const doneButtonStyle    = { width: "100%", padding: "10px", background: "#639922", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "500", cursor: "pointer", animation: "fadeUp 0.4s ease 0.8s both" };
+const overlayStyle       = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 };
+const successCardStyle   = { background: "#fff", borderRadius: "16px", padding: "2.5rem 2rem", maxWidth: "320px", width: "90%", textAlign: "center", animation: "popIn 0.5s cubic-bezier(.34,1.56,.64,1) both" };
+const iconWrapStyle      = { width: "80px", height: "80px", margin: "0 auto 1.5rem" };
+const waitingBannerStyle = { display: "flex", alignItems: "flex-start", gap: "12px", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "8px", padding: "14px 16px", fontSize: "14px" };
+const approvedBannerStyle = { display: "flex", alignItems: "flex-start", gap: "12px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px", padding: "14px 16px", fontSize: "14px" };
 
 export default ChallanPage;

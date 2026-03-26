@@ -18,7 +18,7 @@ from .models import (
     RouteChangeRequest,
     MaintenanceSchedule,
     Notification,
-    TransportRegistration
+    TransportRegistration,
 )
 
 class UserSerializer(serializers.ModelSerializer):

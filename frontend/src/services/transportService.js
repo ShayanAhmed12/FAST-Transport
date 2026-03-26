@@ -47,3 +47,6 @@ export const updateRegistration = (id, data) => api.patch(`/api/transport-regist
 
 export const getChallan = (id) => api.get(`/api/transport-registrations/${id}/challan/`);
 export const payChallan = (registrationId) =>api.post(`/api/transport-registrations/${registrationId}/challan/pay/`);
+
+export const listFeeVerifications = () => api.get("/api/fee-verifications/list/");
+export const verifyFee = (id) => api.post(`/api/fee-verifications/${id}/verify/`);

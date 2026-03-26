@@ -18,7 +18,7 @@ import ViewRoutes from "./pages/student/ViewRoutes";
 import TransportRegistration from "./pages/student/registeration";
 import ChallanPage from "./pages/student/ChallanPage";
 import StudentChallanPage from "./pages/student/StudentChallanPage";
-
+import AdminFeeVerifications from "./pages/admin/AdminFeeVerifications";
 // Redirect /dashboard based on stored role
 function DashboardRedirect() {
   const isStaff = localStorage.getItem("is_staff") === "true";
@@ -77,6 +77,7 @@ function App() {
         <Route path="/admin/stops" element={<StaffRoute><StopsPage /></StaffRoute>} />
         <Route path="/admin/semesters" element={<StaffRoute><SemestersPage /></StaffRoute>} />
          <Route path="/admin/routestop" element={<StaffRoute><RouteStopsPage /></StaffRoute>} />
+         <Route path="/admin/feeverifications" element={<StaffRoute><AdminFeeVerifications /></StaffRoute>} />
       </Routes>
     </BrowserRouter>
   );
