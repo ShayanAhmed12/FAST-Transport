@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
+from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework import viewsets,permissions
@@ -62,7 +63,11 @@ from .serializers import (
     StudentProfileCreateSerializer,
     TransportRegistrationSerializer
 )
-from .seatallocation import allocate_seat_for_student
+from .seatallocation import (
+    allocate_seat_for_student,
+    allocate_seat_on_assignment,
+    reassign_seat_on_assignment,
+)
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -290,6 +295,261 @@ class SeatAllocationViewSet(viewsets.ModelViewSet):
     queryset = SeatAllocation.objects.all()
     serializer_class = SeatAllocationSerializer
     permission_classes = [IsAdmin] # Only Admin full access
+
+    def _assignment_options_by_route_semester(self):
+        active_assignments = list(
+            RouteAssignment.objects.filter(
+                is_active=True,
+                route__is_active=True,
+                bus__is_active=True,
+                semester__is_active=True,
+            ).select_related("route", "semester", "bus", "driver")
+        )
+
+        seat_counts = {
+            row["route_assignment"]: row["count"]
+            for row in SeatAllocation.objects.filter(route_assignment__in=active_assignments)
+            .values("route_assignment")
+            .annotate(count=Count("id"))
+        }
+
+        assignment_by_route_semester = {}
+        for assignment in active_assignments:
+            occupied_seats = seat_counts.get(assignment.id, 0)
+            available_seats = max(assignment.bus.capacity - occupied_seats, 0)
+            key = (assignment.route_id, assignment.semester_id)
+            assignment_by_route_semester.setdefault(key, []).append(
+                {
+                    "id": assignment.id,
+                    "bus_number": assignment.bus.bus_number,
+                    "driver_name": assignment.driver.name,
+                    "total_seats": assignment.bus.capacity,
+                    "occupied_seats": occupied_seats,
+                    "available_seats": available_seats,
+                }
+            )
+
+        return assignment_by_route_semester
+
+    @action(detail=False, methods=["get"], url_path="eligible-registrations")
+    def eligible_registrations(self, request):
+        verified_fee_exists = FeeVerification.objects.filter(
+            student=OuterRef("student"),
+            semester=OuterRef("semester"),
+            is_verified=True,
+        )
+        seat_exists = SeatAllocation.objects.filter(registration=OuterRef("pk"))
+
+        registrations = (
+            SemesterRegistration.objects.select_related(
+                "student__user", "semester", "route", "stop"
+            )
+            .annotate(has_verified_fee=Exists(verified_fee_exists), has_seat=Exists(seat_exists))
+            .filter(has_verified_fee=True, has_seat=False)
+            .order_by("semester__name", "student__roll_number")
+        )
+
+        assignment_by_route_semester = self._assignment_options_by_route_semester()
+
+        data = []
+        for registration in registrations:
+            assignment_options = assignment_by_route_semester.get(
+                (registration.route_id, registration.semester_id),
+                [],
+            )
+            data.append(
+                {
+                    "registration_id": registration.id,
+                    "roll_number": registration.student.roll_number,
+                    "student_name": registration.student.user.username,
+                    "semester": registration.semester.name,
+                    "route": registration.route.name,
+                    "stop": registration.stop.name,
+                    "status": registration.status,
+                    "assignment_options": assignment_options,
+                }
+            )
+
+        return Response(data)
+
+    @action(detail=False, methods=["get"], url_path="current-allocations")
+    def current_allocations(self, request):
+        verified_fee_exists = FeeVerification.objects.filter(
+            student=OuterRef("registration__student"),
+            semester=OuterRef("registration__semester"),
+            is_verified=True,
+        )
+
+        allocations = (
+            SeatAllocation.objects.select_related(
+                "registration__student__user",
+                "registration__semester",
+                "registration__route",
+                "registration__stop",
+                "route_assignment__bus",
+            )
+            .annotate(has_verified_fee=Exists(verified_fee_exists))
+            .filter(has_verified_fee=True)
+            .order_by("registration__semester__name", "registration__student__roll_number")
+        )
+
+        assignment_by_route_semester = self._assignment_options_by_route_semester()
+
+        data = []
+        for allocation in allocations:
+            registration = allocation.registration
+            assignment_options = assignment_by_route_semester.get(
+                (registration.route_id, registration.semester_id),
+                [],
+            )
+            adjusted_options = []
+            for option in assignment_options:
+                adjusted_options.append(
+                    {
+                        **option,
+                        "available_seats": (
+                            option["available_seats"] + 1
+                            if option["id"] == allocation.route_assignment_id
+                            else option["available_seats"]
+                        ),
+                    }
+                )
+
+            data.append(
+                {
+                    "registration_id": registration.id,
+                    "roll_number": registration.student.roll_number,
+                    "student_name": registration.student.user.username,
+                    "semester": registration.semester.name,
+                    "route": registration.route.name,
+                    "stop": registration.stop.name,
+                    "status": registration.status,
+                    "current_bus": allocation.route_assignment.bus.bus_number,
+                    "current_seat_number": allocation.seat_number,
+                    "current_route_assignment_id": allocation.route_assignment_id,
+                    "assignment_options": adjusted_options,
+                }
+            )
+
+        return Response(data)
+
+    @action(detail=False, methods=["post"], url_path="assign")
+    def assign(self, request):
+        registration_id = request.data.get("registration_id")
+        route_assignment_id = request.data.get("route_assignment_id")
+
+        if not registration_id or not route_assignment_id:
+            return Response(
+                {"detail": "registration_id and route_assignment_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            registration = SemesterRegistration.objects.select_related(
+                "student__user", "semester", "route"
+            ).get(pk=registration_id)
+        except SemesterRegistration.DoesNotExist:
+            return Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            assignment = RouteAssignment.objects.select_related(
+                "route", "semester", "bus", "driver"
+            ).get(pk=route_assignment_id, is_active=True)
+        except RouteAssignment.DoesNotExist:
+            return Response(
+                {"detail": "Active route assignment not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if assignment.route_id != registration.route_id or assignment.semester_id != registration.semester_id:
+            return Response(
+                {"detail": "Selected assignment does not match student's route and semester."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        has_verified_fee = FeeVerification.objects.filter(
+            student=registration.student,
+            semester=registration.semester,
+            is_verified=True,
+        ).exists()
+        if not has_verified_fee:
+            return Response(
+                {"detail": "Student fee is not verified for this semester."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        allocation_result = allocate_seat_on_assignment(registration, assignment)
+        if allocation_result != "Seat Allocated":
+            return Response({"detail": allocation_result}, status=status.HTTP_400_BAD_REQUEST)
+
+        TransportRegistration.objects.filter(
+            student=registration.student,
+            semester=registration.semester,
+        ).update(status="Approved", is_paid=True)
+
+        seat = SeatAllocation.objects.filter(registration=registration).first()
+
+        return Response(
+            {
+                "detail": "Seat assigned successfully.",
+                "registration_id": registration.id,
+                "route_assignment_id": assignment.id,
+                "seat_number": seat.seat_number if seat else None,
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="reassign")
+    def reassign(self, request):
+        registration_id = request.data.get("registration_id")
+        route_assignment_id = request.data.get("route_assignment_id")
+
+        if not registration_id or not route_assignment_id:
+            return Response(
+                {"detail": "registration_id and route_assignment_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            registration = SemesterRegistration.objects.select_related(
+                "student__user", "semester", "route"
+            ).get(pk=registration_id)
+        except SemesterRegistration.DoesNotExist:
+            return Response({"detail": "Registration not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            assignment = RouteAssignment.objects.select_related(
+                "route", "semester", "bus", "driver"
+            ).get(pk=route_assignment_id, is_active=True)
+        except RouteAssignment.DoesNotExist:
+            return Response(
+                {"detail": "Active route assignment not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        has_verified_fee = FeeVerification.objects.filter(
+            student=registration.student,
+            semester=registration.semester,
+            is_verified=True,
+        ).exists()
+        if not has_verified_fee:
+            return Response(
+                {"detail": "Student fee is not verified for this semester."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reassign_result = reassign_seat_on_assignment(registration, assignment)
+        if reassign_result != "Seat Reassigned":
+            return Response({"detail": reassign_result}, status=status.HTTP_400_BAD_REQUEST)
+
+        seat = SeatAllocation.objects.filter(registration=registration).first()
+        return Response(
+            {
+                "detail": "Seat reassigned successfully.",
+                "registration_id": registration.id,
+                "route_assignment_id": assignment.id,
+                "seat_number": seat.seat_number if seat else None,
+            }
+        )
 
 
 class WaitlistViewSet(viewsets.ModelViewSet):

@@ -60,7 +60,8 @@ function BusesPage() {
 
   const columns = [
     { key: "bus_number", label: "Bus Number" },
-    { key: "capacity", label: "Capacity" },
+    { key: "total_seats", label: "Total Seats", render: (row) => row.total_seats ?? row.capacity },
+    { key: "available_seats", label: "Available Seats", render: (row) => row.available_seats ?? row.capacity },
     { key: "model", label: "Model" },
     {
       key: "is_active",
@@ -99,6 +100,20 @@ function BusesPage() {
             </div>
           )}
           <h2>Buses</h2>
+          <div style={seatStatsWrapStyle}>
+            <div style={seatStatCardStyle}>
+              <div style={seatStatLabelStyle}>Total Seats</div>
+              <div style={seatStatValueStyle}>
+                {buses.reduce((sum, bus) => sum + Number(bus.total_seats ?? bus.capacity ?? 0), 0)}
+              </div>
+            </div>
+            <div style={seatStatCardStyle}>
+              <div style={seatStatLabelStyle}>Available Seats</div>
+              <div style={seatStatValueStyle}>
+                {buses.reduce((sum, bus) => sum + Number(bus.available_seats ?? bus.capacity ?? 0), 0)}
+              </div>
+            </div>
+          </div>
           <form onSubmit={handleSubmit} style={formStyle}>
             <input
               name="bus_number"
@@ -162,5 +177,9 @@ const modalOverlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0
 const modalBoxStyle = { background: "#fff", borderRadius: "8px", padding: "28px 32px", maxWidth: "420px", width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" };
 const modalCancelBtnStyle = { padding: "8px 18px", border: "1px solid #ccc", borderRadius: "4px", background: "#fff", cursor: "pointer" };
 const modalConfirmBtnStyle = { padding: "8px 18px", border: "none", borderRadius: "4px", background: "#c0392b", color: "#fff", cursor: "pointer", fontWeight: 600 };
+const seatStatsWrapStyle = { display: "flex", gap: "12px", marginBottom: "18px", flexWrap: "wrap" };
+const seatStatCardStyle = { background: "#f8f9fb", border: "1px solid #dfe3ea", borderRadius: "8px", padding: "10px 14px", minWidth: "160px" };
+const seatStatLabelStyle = { color: "#555", fontSize: "13px" };
+const seatStatValueStyle = { color: "#1a1a2e", fontSize: "22px", fontWeight: 700, lineHeight: 1.2 };
 
 export default BusesPage;

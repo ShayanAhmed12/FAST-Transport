@@ -50,3 +50,10 @@ export const payChallan = (registrationId) =>api.post(`/api/transport-registrati
 
 export const listFeeVerifications = () => api.get("/api/fee-verifications/list/");
 export const verifyFee = (id) => api.post(`/api/fee-verifications/${id}/verify/`);
+
+export const listEligibleSeatAssignments = () =>
+	api.get("/api/seat-allocations/eligible-registrations/");
+export const assignStudentSeat = (data) => api.post("/api/seat-allocations/assign/", data);
+export const listCurrentSeatAllocations = () =>
+	api.get("/api/seat-allocations/current-allocations/");
+export const reassignStudentSeat = (data) => api.post("/api/seat-allocations/reassign/", data);

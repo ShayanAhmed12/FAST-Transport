@@ -110,10 +110,24 @@ class RouteStopSerializer(serializers.ModelSerializer):
 
 
 class BusSerializer(serializers.ModelSerializer):
+    total_seats = serializers.IntegerField(source="capacity", read_only=True)
+    occupied_seats = serializers.SerializerMethodField()
+    available_seats = serializers.SerializerMethodField()
+
     class Meta:
         model = Bus
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
+
+    def get_occupied_seats(self, obj):
+        return SeatAllocation.objects.filter(
+            route_assignment__bus=obj,
+            route_assignment__is_active=True,
+        ).count()
+
+    def get_available_seats(self, obj):
+        occupied = self.get_occupied_seats(obj)
+        return max(obj.capacity - occupied, 0)
 
 
 class DriverSerializer(serializers.ModelSerializer):
