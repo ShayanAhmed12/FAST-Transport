@@ -8,7 +8,7 @@ function Home() {
     <div style={styles.root}>
       <MeshGradient
   style={styles.shader}
-  colors={["#000000", "#ffffff", "#333333", "#888888"]}
+  colors={["#291919", "#ef9898", "#b31c1c", "#c42828"]}
   distortion={0.5}
   swirl={0.3}
   speed={0.5}
