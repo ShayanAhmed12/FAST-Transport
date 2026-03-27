@@ -10,6 +10,7 @@ const adminLinks = [
   { to: "/admin/routestop", label: "Route Stops" },
   { to: "/admin/semesters", label: "Semesters" },
   { to: "/admin/assignments", label: "Assignments" },
+  { to: "/admin/feeverifications", label: "Fees Verification" },
 ];
 
 const studentLinks = [

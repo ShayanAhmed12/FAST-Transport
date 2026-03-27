@@ -8,6 +8,8 @@ function StudentDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const pendingAssignmentMessage = "Fees paid; Admin will assign seats shortly.";
+  const unpaidRegistrationMessage = "Registration submitted. Please pay transport fee to proceed.";
 
   useEffect(() => {
     getDashboard()
@@ -36,6 +38,14 @@ function StudentDashboard() {
     seat,
     waitlist_position,
   } = data;
+
+  const normalizedStatus = (active_registration?.status || "").toLowerCase();
+  const hasSubmittedFee = Boolean(active_registration?.fee_submitted);
+  const shouldShowPendingAssignmentStatus =
+    !seat && hasSubmittedFee && ["pending", "approved", "payment_submitted"].includes(normalizedStatus);
+  const displayStatus = shouldShowPendingAssignmentStatus
+    ? pendingAssignmentMessage
+    : active_registration?.status;
 
   return (
     <div style={{ display: "flex" }}>
@@ -101,7 +111,7 @@ function StudentDashboard() {
                 </p>
                 <p>
                   <strong>Status:</strong>{" "}
-                  {active_registration.status}
+                  {displayStatus}
                 </p>
 
                 <hr style={{ margin: "12px 0" }} />
@@ -116,14 +126,14 @@ function StudentDashboard() {
                   </div>
                 ) : (
                   <div style={{ color: "gray" }}>
-                    Pending allocation...
+                    {hasSubmittedFee ? "Pending allocation..." : unpaidRegistrationMessage}
                   </div>
                 )}
               </>
             ) : (
               <div>
                 <p style={{ color: "orange", fontWeight: "bold" }}>
-                    Transport Registration Pending / Not Active Yet
+                    {unpaidRegistrationMessage}
                 </p>
 
                 <button

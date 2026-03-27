@@ -83,7 +83,7 @@ function ViewRoutes() {
                 style={searchInputStyle}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} style={clearBtnStyle}>✕</button>
+                <button onClick={() => setSearchQuery("")} style={clearBtnStyle}>X</button>
               )}
             </div>
           </div>
@@ -114,7 +114,7 @@ function ViewRoutes() {
                       onClick={() => handleDriverClick(driverId, driverName)}
                       title="Click to view driver details"
                     >
-                      👤 {driverName}
+                      Driver: {driverName}
                     </span>
                   </div>
                 </div>
@@ -155,8 +155,8 @@ function ViewRoutes() {
       {selectedDriver && (
         <div style={overlayStyle} onClick={() => setSelectedDriver(null)}>
           <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <button style={closeBtnStyle} onClick={() => setSelectedDriver(null)}>✕</button>
-            <div style={avatarCircleStyle}>👤</div>
+            <button style={closeBtnStyle} onClick={() => setSelectedDriver(null)}>X</button>
+            <div style={avatarCircleStyle}>DR</div>
             <h3 style={{ textAlign: "center", margin: "12px 0 4px" }}>
               {selectedDriver.name || "Driver"}
             </h3>

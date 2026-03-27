@@ -10,6 +10,14 @@ def allocate_seat_for_student(registration):
     route = registration.route
     semester = registration.semester
 
+    # Keep allocation idempotent in case this function is triggered multiple times
+    # for the same registration (e.g., via API flow + post_save signal).
+    if SeatAllocation.objects.filter(registration=registration).exists():
+        return "Seat already allocated"
+
+    if Waitlist.objects.filter(registration=registration).exists():
+        return "Already on waitlist"
+
     # Get active assignment for this route + semester
     assignment = RouteAssignment.objects.filter(
         route=route,

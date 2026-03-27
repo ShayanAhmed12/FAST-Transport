@@ -28,6 +28,8 @@ function StatusBadge({ status }) {
 function StudentTransport() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const pendingAssignmentMessage = "Fees paid; Admin will assign seats shortly.";
+  const unpaidRegistrationMessage = "Registration submitted. Please pay transport fee to proceed.";
 
   useEffect(() => {
     getDashboard()
@@ -38,7 +40,17 @@ function StudentTransport() {
   if (error) return <p style={{ color: "red" }}>{error}</p>;
   if (!data) return <p>Loading...</p>;
 
-  const { active_registration, seat, waitlist_position, fee_summary } = data;
+  const { profile, active_registration, seat, waitlist_position, fee_summary } = data;
+  const normalizedStatus = (active_registration?.status || "").toLowerCase();
+  const hasSubmittedFee = Boolean(active_registration?.fee_submitted);
+  const shouldShowPendingAssignmentStatus =
+    !seat && hasSubmittedFee && ["pending", "approved", "payment_submitted"].includes(normalizedStatus);
+  const displayStatus = shouldShowPendingAssignmentStatus
+    ? pendingAssignmentMessage
+    : active_registration?.status;
+  const hasFullAssignment = Boolean(
+    profile && seat && active_registration?.route && active_registration?.bus
+  );
 
   return (
     <div style={{ display: "flex" }}>
@@ -53,14 +65,27 @@ function StudentTransport() {
             {active_registration ? (
               <>
                 <p><strong>Semester:</strong> {active_registration.semester}</p>
+                <p><strong>Bus:</strong> {active_registration.bus || "Pending assignment"}</p>
                 <p><strong>Route:</strong> {active_registration.route}</p>
                 <p><strong>Stop:</strong> {active_registration.stop}</p>
-                <p><strong>Status:</strong> <StatusBadge status={active_registration.status} /></p>
+                <p><strong>Status:</strong> <StatusBadge status={displayStatus} /></p>
+                {!seat && !waitlist_position && !hasSubmittedFee && (
+                  <p style={{ color: "#856404" }}>{unpaidRegistrationMessage}</p>
+                )}
                 {seat && <p><strong>Seat Number:</strong> {seat.seat_number}</p>}
                 {waitlist_position && <p><strong>Waitlist Position:</strong> #{waitlist_position}</p>}
+                {hasFullAssignment && (
+                  <>
+                    <hr style={{ margin: "12px 0" }} />
+                    <h3 style={{ marginBottom: "8px" }}>Student Details</h3>
+                    <p><strong>Roll No:</strong> {profile.roll_number}</p>
+                    <p><strong>Department:</strong> {profile.department}</p>
+                    <p><strong>Batch:</strong> {profile.batch}</p>
+                  </>
+                )}
               </>
             ) : (
-              <p>No active registration found.</p>
+              <p>{unpaidRegistrationMessage}</p>
             )}
           </section>
 

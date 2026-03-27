@@ -76,7 +76,9 @@ function ChallanPage() {
 
   // Poll every 10 seconds while status is "paid" but not yet "approved"
   useEffect(() => {
-    const isPaidNotApproved = data?.status === "paid" && data?.registration_status !== "approved";
+    const isPaidNotApproved =
+      data?.status === "paid" &&
+      (data?.registration_status || "").toLowerCase() !== "approved";
 
     if (isPaidNotApproved) {
       pollRef.current = setInterval(fetchChallan, 10000);
@@ -103,8 +105,8 @@ function ChallanPage() {
   if (loading) return <p>Loading...</p>;
   if (!data)   return <p>Challan not found</p>;
 
-  const isPaid     = data.status === "paid";
-  const isApproved = data.registration_status === "approved";
+  const isPaid = data.status === "paid";
+  const isApproved = (data.registration_status || "").toLowerCase() === "approved";
 
   return (
     <div style={{ display: "flex" }}>
@@ -142,7 +144,7 @@ function ChallanPage() {
           {/* Paid but not yet verified */}
           {isPaid && !isApproved && !showSuccess && (
             <div style={waitingBannerStyle}>
-              <span style={{ fontSize: "18px" }}>🕐</span>
+              <span style={{ fontSize: "12px", fontWeight: "600", color: "#92400e" }}>Pending</span>
               <div>
                 <p style={{ margin: 0, fontWeight: "500", fontSize: "14px", color: "#92400e" }}>
                   Waiting for admin verification

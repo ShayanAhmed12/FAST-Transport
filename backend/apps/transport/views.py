@@ -62,6 +62,7 @@ from .serializers import (
     StudentProfileCreateSerializer,
     TransportRegistrationSerializer
 )
+from .seatallocation import allocate_seat_for_student
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -257,7 +258,7 @@ class TransportRegistrationViewSet(viewsets.ModelViewSet):
             is_verified=True
         ).first()
 
-        reg_status = "Approved" if fee else "Pending"  
+        reg_status = "Approved" if fee else "Pending"
         registration = serializer.save(
             student=profile,
             route=route_stop.route,
@@ -265,7 +266,20 @@ class TransportRegistrationViewSet(viewsets.ModelViewSet):
             status=reg_status
         )
 
-        amount = 45000; 
+        semester_registration, _ = SemesterRegistration.objects.update_or_create(
+            student=profile,
+            semester=semester,
+            defaults={
+                "route": route_stop.route,
+                "stop": stop,
+                "status": reg_status,
+            },
+        )
+
+        if fee and not SeatAllocation.objects.filter(registration=semester_registration).exists():
+            allocate_seat_for_student(semester_registration)
+
+        amount = 45000
         Challan.objects.get_or_create(
             registration=registration,
             student=profile,
@@ -379,19 +393,66 @@ class DashboardView(APIView):
             except StudentProfile.DoesNotExist:
                 return Response({"detail": "Student profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
+            active_semester = Semester.objects.filter(is_active=True).first()
+
             registrations = SemesterRegistration.objects.filter(student=profile).select_related("semester", "route", "stop")
             active_registration = registrations.filter(semester__is_active=True).first()
+
+            transport_registration = None
+            if active_semester:
+                transport_registration = TransportRegistration.objects.filter(
+                    student=profile,
+                    semester=active_semester,
+                ).select_related("semester", "route", "stop").first()
+
+            registration_semester = None
+            if active_registration:
+                registration_semester = active_registration.semester
+            elif transport_registration:
+                registration_semester = transport_registration.semester
+
+            fee_submitted_for_registration = False
+            fee_verified_for_registration = False
+            if registration_semester:
+                fee_submitted_for_registration = FeeVerification.objects.filter(
+                    student=profile,
+                    semester=registration_semester,
+                ).exists()
+                fee_verified_for_registration = FeeVerification.objects.filter(
+                    student=profile,
+                    semester=registration_semester,
+                    is_verified=True,
+                ).exists()
+
+            bus_number = None
 
             seat = None
             waitlist_position = None
             if active_registration:
-                seat_obj = SeatAllocation.objects.filter(registration=active_registration).first()
+                seat_obj = SeatAllocation.objects.select_related("route_assignment__bus").filter(registration=active_registration).first()
                 if seat_obj:
                     seat = {"seat_number": seat_obj.seat_number, "allocated_at": seat_obj.allocated_at}
+                    bus_number = seat_obj.route_assignment.bus.bus_number
                 else:
                     waitlist_obj = Waitlist.objects.filter(registration=active_registration).first()
                     if waitlist_obj:
                         waitlist_position = waitlist_obj.position
+
+                    assignment = RouteAssignment.objects.select_related("bus").filter(
+                        route=active_registration.route,
+                        semester=active_registration.semester,
+                        is_active=True,
+                    ).first()
+                    if assignment:
+                        bus_number = assignment.bus.bus_number
+            elif transport_registration:
+                assignment = RouteAssignment.objects.select_related("bus").filter(
+                    route=transport_registration.route,
+                    semester=transport_registration.semester,
+                    is_active=True,
+                ).first()
+                if assignment:
+                    bus_number = assignment.bus.bus_number
 
             fees = FeeVerification.objects.filter(student=profile).select_related("semester")
             complaints = Complaint.objects.filter(submitted_by=user).order_by("-created_at")[:5]
@@ -407,11 +468,30 @@ class DashboardView(APIView):
                     "address": profile.address,
                 },
                 "active_registration": {
-                    "semester": active_registration.semester.name if active_registration else None,
-                    "route": active_registration.route.name if active_registration else None,
-                    "stop": active_registration.stop.name if active_registration else None,
-                    "status": active_registration.status if active_registration else None,
-                } if active_registration else None,
+                    "semester": (
+                        active_registration.semester.name
+                        if active_registration
+                        else transport_registration.semester.name
+                    ),
+                    "route": (
+                        active_registration.route.name
+                        if active_registration
+                        else transport_registration.route.name if transport_registration.route else None
+                    ),
+                    "stop": (
+                        active_registration.stop.name
+                        if active_registration
+                        else transport_registration.stop.name
+                    ),
+                    "status": (
+                        active_registration.status
+                        if active_registration
+                        else transport_registration.status
+                    ),
+                    "bus": bus_number,
+                    "fee_submitted": fee_submitted_for_registration,
+                    "fee_verified": fee_verified_for_registration,
+                } if (active_registration or transport_registration) else None,
                 "seat": seat,
                 "waitlist_position": waitlist_position,
                 "fee_summary": [
@@ -559,10 +639,26 @@ def verify_fee(request, pk):
     fee.save()
 
     # Approve the transport registration
-    TransportRegistration.objects.filter(
+    registrations_qs = TransportRegistration.objects.filter(
         student=fee.student,
         semester=fee.semester
-    ).update(status="approved")
+    )
+    registrations_qs.update(status="Approved")
+
+    first_registration = registrations_qs.select_related("route", "stop").first()
+    if first_registration and first_registration.route and first_registration.stop:
+        semester_registration, _ = SemesterRegistration.objects.update_or_create(
+            student=fee.student,
+            semester=fee.semester,
+            defaults={
+                "route": first_registration.route,
+                "stop": first_registration.stop,
+                "status": "Approved",
+            },
+        )
+
+        if not SeatAllocation.objects.filter(registration=semester_registration).exists():
+            allocate_seat_for_student(semester_registration)
 
     # Notify the student
     Notification.objects.create(
