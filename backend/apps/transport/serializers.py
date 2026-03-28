@@ -372,16 +372,18 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'password', 'roll_number', 'department', 'batch', 'phone', 'address']
 
     def create(self, validated_data):
-        from django.contrib.auth.models import User
+        from django.contrib.auth.models import User, Group
 
         username = validated_data.pop('username')
         email = validated_data.pop('email')
         password = validated_data.pop('password')
 
-        # Create Django User
         user = User.objects.create_user(username=username, email=email, password=password)
 
-        # Create StudentProfile linked to this user
+        # Add to Student group automatically
+        student_group, _ = Group.objects.get_or_create(name="Student")
+        user.groups.add(student_group)
+
         profile = StudentProfile.objects.create(user=user, **validated_data)
         return profile
             
