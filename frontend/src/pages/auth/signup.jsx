@@ -37,7 +37,13 @@ function Signup() {
     // REDIRECT TO OTP PAGE
    
     localStorage.setItem("otp_email", formData.email);
-navigate("/verify-otp", { state: { email: formData.email } });
+    navigate("/verify-otp", { 
+      state: { 
+        email: formData.email, 
+        username: formData.username, 
+        password: formData.password 
+      } 
+    });
 
   } catch (err) {
     setError(JSON.stringify(err.response?.data || "Signup failed"));

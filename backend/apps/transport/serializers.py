@@ -386,4 +386,12 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
 
         profile = StudentProfile.objects.create(user=user, **validated_data)
         return profile
+    
+    def validate_email(self, value):
+        value = value.lower().strip()
+
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Email already exists.")
+
+        return value
             

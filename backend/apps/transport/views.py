@@ -688,7 +688,15 @@ def verify_otp(request):
         return Response({"detail": "Email and OTP are required."}, status=400)
 
     try:
-        user = User.objects.get(email=email)
+        users = User.objects.filter(email=email, is_active=False)
+
+        if not users.exists():
+            return Response({"detail": "No pending account found with this email."}, status=404)
+
+        if users.count() > 1:
+            return Response({"detail": "Multiple accounts found. Contact support."}, status=400)
+
+        user = users.first()
     except User.DoesNotExist:
         return Response({"detail": "No account found with this email."}, status=404)
 
@@ -728,7 +736,15 @@ def resend_otp(request):
         return Response({"detail": "Email is required."}, status=400)
 
     try:
-        user = User.objects.get(email=email, is_active=False)
+        users = User.objects.filter(email=email, is_active=False)
+
+        if not users.exists():
+            return Response({"detail": "No pending account found with this email."}, status=404)
+
+        if users.count() > 1:
+            return Response({"detail": "Multiple accounts found. Contact support."}, status=400)
+
+        user = users.first()
     except User.DoesNotExist:
         return Response({"detail": "No pending account found with this email."}, status=404)
 
