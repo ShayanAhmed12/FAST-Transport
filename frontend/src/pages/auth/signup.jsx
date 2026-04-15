@@ -23,18 +23,29 @@ function Signup() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await signup(formData);
-      navigate("/student/dashboard");
-    } catch (err) {
-      setError(JSON.stringify(err.response?.data || "Signup failed"));
-    } finally {
-      setLoading(false);
-    }
-  };
+
+ const handleSignup = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    await signup(formData);
+
+    // SAVE EMAIL for OTP page
+
+
+    // REDIRECT TO OTP PAGE
+   
+    localStorage.setItem("otp_email", formData.email);
+navigate("/verify-otp", { state: { email: formData.email } });
+
+  } catch (err) {
+    setError(JSON.stringify(err.response?.data || "Signup failed"));
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div style={styles.root}>

@@ -57,3 +57,9 @@ export const assignStudentSeat = (data) => api.post("/api/seat-allocations/assig
 export const listCurrentSeatAllocations = () =>
 	api.get("/api/seat-allocations/current-allocations/");
 export const reassignStudentSeat = (data) => api.post("/api/seat-allocations/reassign/", data);
+
+export const verifyOtp = (data) =>
+  api.post("/api/verify-otp/", data);
+
+export const resendOtp = (data) =>
+  api.post("/api/resend-otp/", data);

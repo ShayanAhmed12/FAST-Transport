@@ -32,6 +32,8 @@ urlpatterns = [
     # Explicit paths FIRST
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
     path('user/', CurrentUserView.as_view(), name='current-user'),
+     path('verify-otp/', verify_otp, name='verify-otp'),
+    path('resend-otp/', resend_otp, name='resend-otp'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path("students-list/", students_list),
     path('transport-registrations/<int:pk>/challan/', get_challan),
@@ -40,4 +42,5 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("fee-verifications/list/", list_fee_verifications),
     path("fee-verifications/<int:pk>/verify/", verify_fee),
+   
 ] + router.urls

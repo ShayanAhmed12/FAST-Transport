@@ -8,6 +8,10 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from datetime import timedelta
+import random
 from rest_framework.response import Response
 from rest_framework import viewsets,permissions
 from rest_framework.decorators import action
@@ -39,6 +43,7 @@ from .models import (
     Notification,
     TransportRegistration,
     Challan,
+    OTPVerification,
 )
 
 from .serializers import (
@@ -625,6 +630,132 @@ class NotificationViewSet(viewsets.ModelViewSet):
 class StudentSignupView(generics.CreateAPIView):
     serializer_class = StudentProfileCreateSerializer
     permission_classes = [AllowAny]  # allow anyone to access
+    def perform_create(self, serializer):
+        # Save user but keep inactive until OTP verified
+        profile = serializer.save()
+        user = profile.user
+        user.is_active = False
+        user.save()
+
+        # Generate OTP and store it
+        otp_code = generate_otp()
+        OTPVerification.objects.update_or_create(
+            user=user,
+            defaults={
+                "otp": otp_code,
+                "expires_at": timezone.now() + timedelta(minutes=10),
+                "is_used": False,
+            }
+        )
+
+        # Send OTP email
+        send_mail(
+            subject="Your FAST Transport OTP Code",
+            message=(
+                f"Hello {user.username},\n\n"
+                f"Your OTP verification code is: {otp_code}\n\n"
+                f"This code expires in 10 minutes.\n\n"
+                f"If you did not request this, please ignore this email."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(
+            {"detail": "Account created. Please check your email for the OTP verification code."},
+            status=status.HTTP_201_CREATED
+        )
+
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_otp(request):
+    """
+    POST /api/verify-otp/
+    Body: { "email": "...", "otp": "123456" }
+    """
+    email = request.data.get("email", "").strip()
+    otp_input = request.data.get("otp", "").strip()
+
+    if not email or not otp_input:
+        return Response({"detail": "Email and OTP are required."}, status=400)
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"detail": "No account found with this email."}, status=404)
+
+    try:
+        otp_record = OTPVerification.objects.get(user=user)
+    except OTPVerification.DoesNotExist:
+        return Response({"detail": "No OTP found for this account."}, status=404)
+
+    if otp_record.is_used:
+        return Response({"detail": "OTP has already been used."}, status=400)
+
+    if timezone.now() > otp_record.expires_at:
+        return Response({"detail": "OTP has expired. Please request a new one."}, status=400)
+
+    if otp_record.otp != otp_input:
+        return Response({"detail": "Invalid OTP. Please try again."}, status=400)
+
+    # All good — activate user and mark OTP used
+    otp_record.is_used = True
+    otp_record.save()
+    user.is_active = True
+    user.save()
+
+    return Response({"detail": "Email verified successfully. You can now log in."})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def resend_otp(request):
+    """
+    POST /api/resend-otp/
+    Body: { "email": "..." }
+    """
+    email = request.data.get("email", "").strip()
+
+    if not email:
+        return Response({"detail": "Email is required."}, status=400)
+
+    try:
+        user = User.objects.get(email=email, is_active=False)
+    except User.DoesNotExist:
+        return Response({"detail": "No pending account found with this email."}, status=404)
+
+    otp_code = generate_otp()
+    OTPVerification.objects.update_or_create(
+        user=user,
+        defaults={
+            "otp": otp_code,
+            "expires_at": timezone.now() + timedelta(minutes=10),
+            "is_used": False,
+        }
+    )
+
+    send_mail(
+        subject="Your New FAST Transport OTP Code",
+        message=(
+            f"Hello {user.username},\n\n"
+            f"Your new OTP verification code is: {otp_code}\n\n"
+            f"This code expires in 10 minutes."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+    return Response({"detail": "A new OTP has been sent to your email."})
+    
 
 
 class DashboardView(APIView):
@@ -957,3 +1088,11 @@ def list_fee_verifications(request):
         for f in fees
     ]
     return Response(data)
+
+
+
+
+
+
+
+  
