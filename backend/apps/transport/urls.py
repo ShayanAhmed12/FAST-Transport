@@ -4,6 +4,7 @@ from .views import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import StudentSignupView, CurrentUserView
 from .views import students_list, get_challan, pay_challan, verify_fee, list_fee_verifications
+from .views import student_bus_tracking
 router = DefaultRouter()
 
 # Existing ViewSets
@@ -32,7 +33,7 @@ urlpatterns = [
     # Explicit paths FIRST
     path('signup/', StudentSignupView.as_view(), name='student-signup'),
     path('user/', CurrentUserView.as_view(), name='current-user'),
-     path('verify-otp/', verify_otp, name='verify-otp'),
+    path('verify-otp/', verify_otp, name='verify-otp'),
     path('resend-otp/', resend_otp, name='resend-otp'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path("students-list/", students_list),
@@ -42,5 +43,6 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("fee-verifications/list/", list_fee_verifications),
     path("fee-verifications/<int:pk>/verify/", verify_fee),
+    path('student/bus-tracking/', student_bus_tracking, name='student-bus-tracking'),
    
 ] + router.urls

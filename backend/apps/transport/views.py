@@ -1106,7 +1106,68 @@ def list_fee_verifications(request):
     return Response(data)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_bus_tracking(request):
+    profile = StudentProfile.objects.filter(user=request.user).first()
+    if not profile:
+        return Response({"detail": "Profile not found"}, status=404)
 
+    registration = TransportRegistration.objects.filter(
+        student=profile,
+        route__isnull=False
+    ).select_related('route', 'stop').first()
+
+    if not registration:
+        return Response({"detail": "No active registration found"}, status=404)
+
+    route = registration.route
+
+    route_stops = (
+        RouteStop.objects
+        .filter(route=route)
+        .select_related('stop')
+        .order_by('stop_order')
+    )
+
+    stops = [
+        {
+            "name": rs.stop.name,
+            "lat": float(rs.stop.latitude),
+            "lng": float(rs.stop.longitude),
+            "order": rs.stop_order,
+            "morning_eta": str(rs.morning_eta) if rs.morning_eta else None,
+        }
+        for rs in route_stops
+    ]
+
+    assignment = (
+        RouteAssignment.objects
+        .filter(route=route, is_active=True)
+        .select_related('bus', 'driver')
+        .first()
+    )
+
+    bus_info = {
+        "bus_number": assignment.bus.bus_number,
+        "driver_name": assignment.driver.name,
+        "driver_phone": assignment.driver.phone,
+    } if assignment else None
+
+    # --- GPS LIVE LOCATION (commented for future use) ---
+    # When you have GPS access, replace the simulation in the frontend with:
+    # bus_location = BusLocation.objects.filter(route=route).order_by('-updated_at').first()
+    # if bus_location:
+    #     live = {"lat": float(bus_location.lat), "lng": float(bus_location.lng)}
+    # return it in the response as "live_location": live
+    # ---
+
+    return Response({
+        "route_name": route.name,
+        "stops": stops,
+        "bus": bus_info,
+        "student_stop_name": registration.stop.name,
+    })
 
 
 

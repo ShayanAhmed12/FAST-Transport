@@ -21,6 +21,7 @@ const studentLinks = [
   { to: "/student/routes", label: "View Routes" },
   { to: "/student/transport-registrations", label: "Register Transport" },
   { to: "/student/challan/", label: "View Challan" },
+  { to: "/student/map", label: "Live Bus Map" },
 ];
 
 function Sidebar({ role = "student" }) {
