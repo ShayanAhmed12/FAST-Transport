@@ -30,6 +30,8 @@ export const updateSemester = (id, data) => api.patch(`/api/semesters/${id}/`, d
 
 export const getComplaints = () => api.get("/api/complaints/");
 export const createComplaint = (data) => api.post("/api/complaints/", data);
+export const resolveComplaint = (id, data) =>
+	api.patch(`/api/complaints/${id}/resolve/`, data);
 
 export const getStops = () => api.get("/api/stops/");
 export const createStop = (data) => api.post("/api/stops/", data);

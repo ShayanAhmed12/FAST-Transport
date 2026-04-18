@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import axios from "axios";
+import api from "../../services/api";
 
 const SIMULATION_INTERVAL_MS = 20000; // advance one stop every 20 seconds
 
 // --- GPS LIVE LOCATION (commented for future use) ---
 // When GPS is ready, replace the simulation block below with:
 // const fetchLiveLocation = async () => {
-//   const res = await axios.get("http://localhost:8000/api/student/bus-tracking/", { headers });
+//   const res = await api.get("/api/student/bus-tracking/");
 //   const { lat, lng } = res.data.live_location;
 //   moveBusMarker(lat, lng);
 // };
@@ -28,12 +28,10 @@ export default function StudentMap() {
   const [simStopIndex, setSimStopIndex] = useState(0);
   const [etaSeconds, setEtaSeconds] = useState(SIMULATION_INTERVAL_MS / 1000);
 
-  const headers = { Authorization: `Bearer ${localStorage.getItem("access")}` };
-
   // Fetch route data
   useEffect(() => {
-    axios
-      .get("http://localhost:8000/api/student/bus-tracking/", { headers })
+    api
+      .get("/api/student/bus-tracking/")
       .then((res) => setTrackingData(res.data))
       .catch((err) =>
         setError(err.response?.data?.detail || "Failed to load tracking data")

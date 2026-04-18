@@ -4,7 +4,6 @@ from django.utils import timezone
 from django.conf import settings
 import random
 import string
-print("models.py loaded")
 
 
 class StudentProfile(models.Model):

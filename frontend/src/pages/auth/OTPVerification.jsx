@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MeshGradient } from "@paper-design/shaders-react";
-import axios from "axios";
+import api from "../../services/api";
 import { getToken, getUser } from "../../services/transportService";
 
 function OTPVerification() {
@@ -24,7 +24,7 @@ function OTPVerification() {
     setSuccess("");
 
     try {
-      await axios.post("http://localhost:8000/api/verify-otp/", { email, otp });
+      await api.post("/api/verify-otp/", { email, otp });
       localStorage.removeItem("otp_email");
       setSuccess("Email verified! Logging you in...");
     } catch (err) {
@@ -53,7 +53,7 @@ function OTPVerification() {
     setError("");
     setSuccess("");
     try {
-      await axios.post("http://localhost:8000/api/resend-otp/", { email });
+      await api.post("/api/resend-otp/", { email });
       setSuccess("A new OTP has been sent to your email.");
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to resend OTP");

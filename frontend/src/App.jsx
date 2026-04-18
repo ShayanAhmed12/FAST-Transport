@@ -22,6 +22,9 @@ import AdminFeeVerifications from "./pages/admin/AdminFeeVerifications";
 import StudentBusAssignmentsPage from "./pages/admin/StudentBusAssignments";
 import OTPVerification from "./pages/auth/OTPVerification";
 import StudentMap from "./pages/student/StudentMap";
+import AdminComplaintsPage from "./pages/admin/complaints";
+import NotFoundPage from "./pages/NotFound";
+import AppFeedbackLayer from "./components/AppFeedbackLayer";
 // Redirect /dashboard based on stored role
 function DashboardRedirect() {
   const isStaff = localStorage.getItem("is_staff") === "true";
@@ -55,6 +58,7 @@ function StudentRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
+      <AppFeedbackLayer />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -79,11 +83,13 @@ function App() {
         <Route path="/admin/drivers" element={<StaffRoute><DriversPage /></StaffRoute>} />
         <Route path="/admin/routes" element={<StaffRoute><RoutesPage /></StaffRoute>} />
         <Route path="/admin/assignments" element={<StaffRoute><AssignmentsPage /></StaffRoute>} />
+         <Route path="/admin/complaints" element={<StaffRoute><AdminComplaintsPage /></StaffRoute>} />
         <Route path="/admin/stops" element={<StaffRoute><StopsPage /></StaffRoute>} />
         <Route path="/admin/semesters" element={<StaffRoute><SemestersPage /></StaffRoute>} />
          <Route path="/admin/routestop" element={<StaffRoute><RouteStopsPage /></StaffRoute>} />
          <Route path="/admin/feeverifications" element={<StaffRoute><AdminFeeVerifications /></StaffRoute>} />
          <Route path="/admin/student-bus-assignments" element={<StaffRoute><StudentBusAssignmentsPage /></StaffRoute>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

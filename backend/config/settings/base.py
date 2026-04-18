@@ -17,13 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'apps.accounts',
     'apps.transport',
-    'apps.registration',
-    'apps.complaints',
-    'apps.maintenance',
-    'apps.fees',
-    'apps.notifications',
     'rest_framework',
     'rest_framework_simplejwt',
 ]

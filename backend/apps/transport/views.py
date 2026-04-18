@@ -602,6 +602,26 @@ class ComplaintViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(submitted_by=self.request.user)
 
+    @action(detail=True, methods=["patch"], permission_classes=[IsAdmin])
+    def resolve(self, request, pk=None):
+        complaint = self.get_object()
+        admin_response = (request.data.get("admin_response") or "").strip()
+
+        if not admin_response:
+            return Response(
+                {"detail": "admin_response is required to resolve a complaint."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        complaint.status = "Resolved"
+        complaint.admin_response = admin_response
+        complaint.resolved_by = request.user
+        complaint.resolved_at = timezone.now()
+        complaint.save(update_fields=["status", "admin_response", "resolved_by", "resolved_at"])
+
+        serializer = self.get_serializer(complaint)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class RouteChangeRequestViewSet(viewsets.ModelViewSet):
     queryset = RouteChangeRequest.objects.all()
@@ -942,6 +962,7 @@ class DashboardView(APIView):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def students_list(request):
     students = StudentProfile.objects.select_related("user").all()
 
