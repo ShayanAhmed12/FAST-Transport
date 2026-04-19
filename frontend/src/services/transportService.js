@@ -65,3 +65,22 @@ export const verifyOtp = (data) =>
 
 export const resendOtp = (data) =>
   api.post("/api/resend-otp/", data);
+
+export const submitRouteChangeRequest = (data) =>
+  api.post("/api/route-change-requests/", data);
+ 
+export const cancelRouteChangeRequest = (id) =>
+  api.post(`/api/route-change-requests/${id}/cancel/`);
+ 
+export const getMyRouteChangeRequests = () =>
+  api.get("/api/route-change-requests/");
+ 
+// Admin
+export const listAllRouteChangeRequests = () =>
+  api.get("/api/route-change-requests/");
+ 
+export const approveRouteChangeRequest = (id, admin_remarks = "") =>
+  api.post(`/api/route-change-requests/${id}/approve/`, { admin_remarks });
+ 
+export const denyRouteChangeRequest = (id, admin_remarks = "") =>
+  api.post(`/api/route-change-requests/${id}/deny/`, { admin_remarks });

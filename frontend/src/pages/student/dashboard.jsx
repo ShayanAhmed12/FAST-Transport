@@ -15,14 +15,10 @@ function StudentDashboard() {
     getDashboard()
       .then((res) => {
         const d = res.data;
-
-        console.log("DASHBOARD DATA:", d);
-
         if (d.role === "staff") {
           navigate("/admin/dashboard", { replace: true });
           return;
         }
-
         setData(d);
       })
       .catch(() => setError("Failed to load dashboard data."));
@@ -47,6 +43,12 @@ function StudentDashboard() {
     ? pendingAssignmentMessage
     : active_registration?.status;
 
+  // Only show route change shortcut if student has an active approved registration
+  const canRequestRouteChange =
+    active_registration &&
+    ["approved", "confirmed"].includes(normalizedStatus) &&
+    seat;
+
   return (
     <div style={{ display: "flex" }}>
       <Sidebar role="student" />
@@ -70,22 +72,13 @@ function StudentDashboard() {
           {/* NOTIFICATIONS */}
           <section style={cardStyle}>
             <h2>Notifications</h2>
-
             {recent_notifications?.length > 0 ? (
               <ul style={{ paddingLeft: "1rem" }}>
                 {recent_notifications.map((n, i) => (
-                  <li
-                    key={i}
-                    style={{
-                      marginBottom: "8px",
-                      opacity: n.is_read ? 0.6 : 1,
-                    }}
-                  >
+                  <li key={i} style={{ marginBottom: "8px", opacity: n.is_read ? 0.6 : 1 }}>
                     <strong>{n.title}</strong>: {n.message}
                     {!n.is_read && (
-                      <span style={{ color: "blue", marginLeft: "8px" }}>
-                        (New)
-                      </span>
+                      <span style={{ color: "blue", marginLeft: "8px" }}>(New)</span>
                     )}
                   </li>
                 ))}
@@ -101,18 +94,9 @@ function StudentDashboard() {
 
             {active_registration ? (
               <>
-                <p>
-                  <strong>Route:</strong>{" "}
-                  {active_registration.route}
-                </p>
-                <p>
-                  <strong>Stop:</strong>{" "}
-                  {active_registration.stop}
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  {displayStatus}
-                </p>
+                <p><strong>Route:</strong> {active_registration.route}</p>
+                <p><strong>Stop:</strong> {active_registration.stop}</p>
+                <p><strong>Status:</strong> {displayStatus}</p>
 
                 <hr style={{ margin: "12px 0" }} />
 
@@ -133,22 +117,33 @@ function StudentDashboard() {
             ) : (
               <div>
                 <p style={{ color: "orange", fontWeight: "bold" }}>
-                    {unpaidRegistrationMessage}
+                  {unpaidRegistrationMessage}
                 </p>
-
                 <button
                   onClick={() => navigate("/student/transport")}
-                  style={{
-                    marginTop: "10px",
-                    padding: "8px 12px",
-                    cursor: "pointer"
-                  }}
+                  style={{ marginTop: "10px", padding: "8px 12px", cursor: "pointer" }}
                 >
                   View My Transport
                 </button>
               </div>
             )}
           </section>
+
+          {/* ✅ NEW — ROUTE CHANGE CARD */}
+          {canRequestRouteChange && (
+            <section style={{ ...cardStyle, borderLeft: "4px solid #4f46e5" }}>
+              <h2 style={{ margin: "0 0 8px" }}>Route Change</h2>
+              <p style={{ margin: "0 0 14px", fontSize: "14px", color: "#6b7280" }}>
+                Want to switch to a different route? Submit a request and admin will review seat availability.
+              </p>
+              <button
+                onClick={() => navigate("/student/route-change")}
+                style={routeChangeBtnStyle}
+              >
+                Request Route Change →
+              </button>
+            </section>
+          )}
         </div>
       </div>
     </div>
@@ -160,6 +155,17 @@ const cardStyle = {
   borderRadius: "8px",
   padding: "16px",
   marginBottom: "20px",
+};
+
+const routeChangeBtnStyle = {
+  padding: "9px 18px",
+  background: "#4f46e5",
+  color: "#fff",
+  border: "none",
+  borderRadius: "8px",
+  fontSize: "14px",
+  fontWeight: "500",
+  cursor: "pointer",
 };
 
 export default StudentDashboard;

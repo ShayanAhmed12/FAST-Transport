@@ -1,33 +1,35 @@
 import { NavLink } from "react-router-dom";
-
+ 
 const adminLinks = [
-  { to: "/admin/dashboard", label: "Dashboard" },
-  { to: "/admin/students", label: "Students" },
-  { to: "/admin/buses", label: "Buses" },
-  { to: "/admin/drivers", label: "Drivers" },
-  { to: "/admin/routes", label: "Routes" },
-  { to: "/admin/stops", label: "Stops" },
-  { to: "/admin/routestop", label: "Route Stops" },
-  { to: "/admin/semesters", label: "Semesters" },
-  { to: "/admin/assignments", label: "Assignments" },
-  { to: "/admin/complaints", label: "Complaints" },
-  { to: "/admin/student-bus-assignments", label: "Student Bus Assignments" },
-  { to: "/admin/feeverifications", label: "Fees Verification" },
+  { to: "/admin/dashboard",                label: "Dashboard" },
+  { to: "/admin/students",                 label: "Students" },
+  { to: "/admin/buses",                    label: "Buses" },
+  { to: "/admin/drivers",                  label: "Drivers" },
+  { to: "/admin/routes",                   label: "Routes" },
+  { to: "/admin/stops",                    label: "Stops" },
+  { to: "/admin/routestop",                label: "Route Stops" },
+  { to: "/admin/semesters",                label: "Semesters" },
+  { to: "/admin/assignments",              label: "Assignments" },
+  { to: "/admin/complaints",               label: "Complaints" },
+  { to: "/admin/student-bus-assignments",  label: "Bus Assignments" },
+  { to: "/admin/feeverifications",         label: "Fee Verifications" },
+  { to: "/admin/routechangerequests",      label: "Route Change Requests" }, // ✅ NEW
 ];
-
+ 
 const studentLinks = [
-  { to: "/student/dashboard", label: "Dashboard" },
-  { to: "/student/transport", label: "My Transport" },
-  { to: "/student/complaints", label: "Complaints" },
-  { to: "/student/routes", label: "View Routes" },
+  { to: "/student/dashboard",               label: "Dashboard" },
+  { to: "/student/transport",               label: "My Transport" },
+  { to: "/student/complaints",              label: "Complaints" },
+  { to: "/student/routes",                  label: "View Routes" },
   { to: "/student/transport-registrations", label: "Register Transport" },
-  { to: "/student/challan/", label: "View Challan" },
-  { to: "/student/map", label: "Live Bus Map" },
+  { to: "/student/challan/",                label: "View Challan" },
+  { to: "/student/map",                     label: "Live Bus Map" },
+  { to: "/student/route-change",            label: "Route Change" }, // ✅ NEW
 ];
-
+ 
 function Sidebar({ role = "student" }) {
   const links = role === "staff" ? adminLinks : studentLinks;
-
+ 
   return (
     <aside
       style={{
@@ -58,5 +60,5 @@ function Sidebar({ role = "student" }) {
     </aside>
   );
 }
-
+ 
 export default Sidebar;

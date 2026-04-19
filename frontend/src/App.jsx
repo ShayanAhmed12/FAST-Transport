@@ -25,6 +25,9 @@ import StudentMap from "./pages/student/StudentMap";
 import AdminComplaintsPage from "./pages/admin/complaints";
 import NotFoundPage from "./pages/NotFound";
 import AppFeedbackLayer from "./components/AppFeedbackLayer";
+import StudentRouteChange from "./pages/student/StudentRouteChange";           // ✅ NEW
+import AdminRouteChangeRequests from "./pages/admin/AdminRouteChangeRequests"; // ✅ NEW
+
 // Redirect /dashboard based on stored role
 function DashboardRedirect() {
   const isStaff = localStorage.getItem("is_staff") === "true";
@@ -75,6 +78,7 @@ function App() {
         <Route path="/student/challan" element={<StudentRoute><StudentChallanPage /></StudentRoute>} />
         <Route path="/student/challan/:id" element={<StudentRoute><ChallanPage /></StudentRoute>} />
         <Route path="/student/map" element={<StudentRoute><StudentMap /></StudentRoute>} />
+        <Route path="/student/route-change" element={<StudentRoute><StudentRouteChange /></StudentRoute>} /> {/* ✅ NEW */}
 
         {/* Admin routes */}
         <Route path="/admin/dashboard" element={<StaffRoute><AdminDashboard /></StaffRoute>} />
@@ -83,12 +87,14 @@ function App() {
         <Route path="/admin/drivers" element={<StaffRoute><DriversPage /></StaffRoute>} />
         <Route path="/admin/routes" element={<StaffRoute><RoutesPage /></StaffRoute>} />
         <Route path="/admin/assignments" element={<StaffRoute><AssignmentsPage /></StaffRoute>} />
-         <Route path="/admin/complaints" element={<StaffRoute><AdminComplaintsPage /></StaffRoute>} />
+        <Route path="/admin/complaints" element={<StaffRoute><AdminComplaintsPage /></StaffRoute>} />
         <Route path="/admin/stops" element={<StaffRoute><StopsPage /></StaffRoute>} />
         <Route path="/admin/semesters" element={<StaffRoute><SemestersPage /></StaffRoute>} />
-         <Route path="/admin/routestop" element={<StaffRoute><RouteStopsPage /></StaffRoute>} />
-         <Route path="/admin/feeverifications" element={<StaffRoute><AdminFeeVerifications /></StaffRoute>} />
-         <Route path="/admin/student-bus-assignments" element={<StaffRoute><StudentBusAssignmentsPage /></StaffRoute>} />
+        <Route path="/admin/routestop" element={<StaffRoute><RouteStopsPage /></StaffRoute>} />
+        <Route path="/admin/feeverifications" element={<StaffRoute><AdminFeeVerifications /></StaffRoute>} />
+        <Route path="/admin/student-bus-assignments" element={<StaffRoute><StudentBusAssignmentsPage /></StaffRoute>} />
+        <Route path="/admin/routechangerequests" element={<StaffRoute><AdminRouteChangeRequests /></StaffRoute>} /> {/* ✅ NEW */}
+
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

@@ -332,15 +332,60 @@ class ComplaintSerializer(serializers.ModelSerializer):
 
 
 class RouteChangeRequestSerializer(serializers.ModelSerializer):
+    # Read (nested, for responses)
     registration = SemesterRegistrationSerializer(read_only=True)
     current_route = RouteSerializer(read_only=True)
     requested_route = RouteSerializer(read_only=True)
     requested_stop = StopSerializer(read_only=True)
-
+ 
+    # Write (IDs, for student submission)
+    requested_route_id = serializers.PrimaryKeyRelatedField(
+        queryset=Route.objects.all(),
+        source="requested_route",
+        write_only=True,
+    )
+    requested_stop_id = serializers.PrimaryKeyRelatedField(
+        queryset=Stop.objects.all(),
+        source="requested_stop",
+        write_only=True,
+    )
+ 
+    # Computed seat availability on the requested route (shown to admin)
+    available_seats = serializers.SerializerMethodField()
+ 
     class Meta:
         model = RouteChangeRequest
-        fields = '__all__'
-        read_only_fields = ['requested_at', 'resolved_at']
+        fields = [
+            "id",
+            "registration",
+            "current_route",
+            "requested_route",
+            "requested_stop",
+            "requested_route_id",   # write-only
+            "requested_stop_id",    # write-only
+            "status",
+            "admin_remarks",
+            "requested_at",
+            "resolved_at",
+            "available_seats",
+        ]
+        read_only_fields = ["requested_at", "resolved_at", "status", "admin_remarks"]
+ 
+    def get_available_seats(self, obj):
+        """How many seats are free on the requested route for that semester."""
+        registration = obj.registration
+        if not registration:
+            return None
+        assignment = RouteAssignment.objects.filter(
+            route=obj.requested_route,
+            semester=registration.semester,
+            is_active=True,
+        ).first()
+        if not assignment:
+            return 0
+        occupied = SeatAllocation.objects.filter(route_assignment=assignment).count()
+        return max(assignment.bus.capacity - occupied, 0)
+ 
 
 
 class MaintenanceScheduleSerializer(serializers.ModelSerializer):

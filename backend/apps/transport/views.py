@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from django.db.models import Count, Exists, OuterRef
+from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
@@ -624,9 +625,201 @@ class ComplaintViewSet(viewsets.ModelViewSet):
 
 
 class RouteChangeRequestViewSet(viewsets.ModelViewSet):
-    queryset = RouteChangeRequest.objects.all()
     serializer_class = RouteChangeRequestSerializer
-    permission_classes = [IsStudentCreateOnly] # Students create, Admin full access
+    permission_classes = [IsAuthenticated]
+ 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return RouteChangeRequest.objects.select_related(
+                "registration__student__user",
+                "registration__semester",
+                "current_route",
+                "requested_route",
+                "requested_stop",
+            ).order_by("status", "-requested_at")
+        # Student sees only their own requests
+        profile = StudentProfile.objects.filter(user=user).first()
+        if not profile:
+            return RouteChangeRequest.objects.none()
+        return RouteChangeRequest.objects.filter(
+            registration__student=profile
+        ).select_related(
+            "registration__semester",
+            "current_route",
+            "requested_route",
+            "requested_stop",
+        ).order_by("-requested_at")
+ 
+    def perform_create(self, serializer):
+        """Student submits a route change request."""
+        user = self.request.user
+        profile = StudentProfile.objects.filter(user=user).first()
+        if not profile:
+            raise ValidationError("Student profile not found.")
+ 
+        requested_route = serializer.validated_data.get("requested_route")
+        requested_stop = serializer.validated_data.get("requested_stop")
+ 
+        # Get the student's active semester registration
+        registration = SemesterRegistration.objects.filter(
+            student=profile,
+            semester__is_active=True,
+        ).first()
+        if not registration:
+            raise ValidationError("No active semester registration found.")
+ 
+        if registration.route == requested_route:
+            raise ValidationError("You are already on this route.")
+ 
+        # Block duplicate pending requests
+        if RouteChangeRequest.objects.filter(
+            registration=registration,
+            status="Pending",
+        ).exists():
+            raise ValidationError("You already have a pending route change request.")
+ 
+        serializer.save(
+            registration=registration,
+            current_route=registration.route,
+            requested_route=requested_route,
+            requested_stop=requested_stop,
+            status="Pending",
+        )
+ 
+    # ── Student cancels their own pending request ─────────────────────────────
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def cancel(self, request, pk=None):
+        profile = StudentProfile.objects.filter(user=request.user).first()
+        if not profile:
+            return Response({"detail": "Profile not found."}, status=404)
+ 
+        try:
+            rcr = RouteChangeRequest.objects.get(pk=pk, registration__student=profile)
+        except RouteChangeRequest.DoesNotExist:
+            return Response({"detail": "Request not found."}, status=404)
+ 
+        if rcr.status != "Pending":
+            return Response({"detail": "Only pending requests can be cancelled."}, status=400)
+ 
+        rcr.status = "Cancelled"
+        rcr.resolved_at = timezone.now()
+        rcr.save()
+        return Response({"detail": "Request cancelled."})
+ 
+    # ── Admin approves ────────────────────────────────────────────────────────
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def approve(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response({"detail": "Unauthorized."}, status=403)
+ 
+        try:
+            rcr = RouteChangeRequest.objects.select_related(
+                "registration__student__user",
+                "registration__semester",
+                "registration__route",
+                "registration__stop",
+                "requested_route",
+                "requested_stop",
+            ).get(pk=pk)
+        except RouteChangeRequest.DoesNotExist:
+            return Response({"detail": "Request not found."}, status=404)
+ 
+        if rcr.status != "Pending":
+            return Response({"detail": "Only pending requests can be approved."}, status=400)
+ 
+        registration = rcr.registration
+        semester = registration.semester
+        student = registration.student
+        new_route = rcr.requested_route
+        new_stop = rcr.requested_stop
+ 
+        # Check if there is an active assignment + available seat on new route
+        new_assignment = RouteAssignment.objects.filter(
+            route=new_route,
+            semester=semester,
+            is_active=True,
+        ).first()
+        if not new_assignment:
+            return Response({"detail": "No active bus assignment for the requested route."}, status=400)
+ 
+        from .seatallocation import _get_next_available_seat_number
+        available_seat = _get_next_available_seat_number(new_assignment)
+        if available_seat is None:
+            return Response({"detail": "No seats available on the requested route."}, status=400)
+ 
+        with transaction.atomic():
+            # 1. Free old seat allocation
+            SeatAllocation.objects.filter(registration=registration).delete()
+ 
+            # 2. Update the SemesterRegistration to new route + stop
+            registration.route = new_route
+            registration.stop = new_stop
+            registration.save(update_fields=["route", "stop", "updated_at"])
+ 
+            # 3. Allocate seat on new route
+            SeatAllocation.objects.create(
+                registration=registration,
+                route_assignment=new_assignment,
+                seat_number=available_seat,
+            )
+ 
+            # 4. Update TransportRegistration too (keeps data consistent)
+            TransportRegistration.objects.filter(
+                student=student,
+                semester=semester,
+            ).update(route=new_route, stop=new_stop)
+ 
+            # 5. Resolve the request
+            rcr.status = "Approved"
+            rcr.admin_remarks = request.data.get("admin_remarks", "")
+            rcr.resolved_at = timezone.now()
+            rcr.save()
+ 
+        # Notify student
+        Notification.objects.create(
+            user=student.user,
+            title="Route Change Approved",
+            message=(
+                f"Your route change request to {new_route.name} has been approved. "
+                f"New stop: {new_stop.name}. Seat no: {available_seat}."
+            ),
+            type="info",
+        )
+ 
+        return Response({"detail": "Route change approved and seat allocated."})
+ 
+    # ── Admin denies ──────────────────────────────────────────────────────────
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def deny(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response({"detail": "Unauthorized."}, status=403)
+ 
+        try:
+            rcr = RouteChangeRequest.objects.get(pk=pk)
+        except RouteChangeRequest.DoesNotExist:
+            return Response({"detail": "Request not found."}, status=404)
+ 
+        if rcr.status != "Pending":
+            return Response({"detail": "Only pending requests can be denied."}, status=400)
+ 
+        rcr.status = "Rejected"
+        rcr.admin_remarks = request.data.get("admin_remarks", "")
+        rcr.resolved_at = timezone.now()
+        rcr.save()
+ 
+        Notification.objects.create(
+            user=rcr.registration.student.user,
+            title="Route Change Denied",
+            message=(
+                f"Your route change request to {rcr.requested_route.name} was denied. "
+                f"Reason: {rcr.admin_remarks or 'No reason provided.'}"
+            ),
+            type="warning",
+        )
+ 
+        return Response({"detail": "Route change request denied."})
+ 
 
 
 class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
