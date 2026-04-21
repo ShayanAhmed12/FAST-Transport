@@ -17,11 +17,10 @@ const STATUS_STYLE = {
 
 export default function StudentRouteChange() {
   const [requests, setRequests]           = useState([]);
-  const [routes, setRoutes]               = useState([]);
-  const [allRouteStops, setAllRouteStops] = useState([]);
-  const [stops, setStops]                 = useState([]);
-  const [currentRoute, setCurrentRoute]   = useState(""); // ✅ student's current route name
-  const [form, setForm]                   = useState({ requested_route_id: "", requested_stop_id: "" });
+  const [allStops, setAllStops]           = useState([]);
+  const [currentRoute, setCurrentRoute]   = useState("");
+  const [currentStop, setCurrentStop]     = useState("");
+  const [form, setForm]                   = useState({ requested_stop_id: "" });
   const [submitting, setSubmitting]       = useState(false);
   const [cancelling, setCancelling]       = useState(null);
   const [error, setError]                 = useState("");
@@ -32,36 +31,28 @@ export default function StudentRouteChange() {
 
   useEffect(() => {
     fetchRequests();
-    api.get("/api/routes/").then((r) => setRoutes(r.data)).catch(() => {});
-    api.get("/api/routestops/").then((r) => setAllRouteStops(r.data)).catch(() => {});
-    // ✅ get student's current route name from dashboard to exclude it from options
+    // Load all stops for the dropdown
+    api.get("/api/stops/").then((r) => setAllStops(r.data)).catch(() => {});
+    // Get student's current route and stop from dashboard
     api.get("/api/dashboard/").then((r) => {
-      const routeName = r.data?.active_registration?.route;
-      if (routeName) setCurrentRoute(routeName);
+      const reg = r.data?.active_registration;
+      if (reg?.route) setCurrentRoute(reg.route);
+      if (reg?.stop) setCurrentStop(reg.stop);
     }).catch(() => {});
   }, []);
-
-  // ✅ filter client-side when route selection changes
-  useEffect(() => {
-    if (!form.requested_route_id) { setStops([]); return; }
-    const filtered = allRouteStops.filter(
-      (rs) => String(rs.route) === String(form.requested_route_id)
-    );
-    setStops(filtered);
-  }, [form.requested_route_id, allRouteStops]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setSuccess("");
-    if (!form.requested_route_id || !form.requested_stop_id) {
-      setError("Please select both a route and a stop.");
+    if (!form.requested_stop_id) {
+      setError("Please select a new stop.");
       return;
     }
     setSubmitting(true);
     try {
-      await submitRouteChangeRequest(form);
-      setSuccess("Route change request submitted successfully.");
-      setForm({ requested_route_id: "", requested_stop_id: "" });
+      await submitRouteChangeRequest({ requested_stop_id: form.requested_stop_id });
+      setSuccess("Route change request submitted! The system will auto-assign the best route for your stop.");
+      setForm({ requested_stop_id: "" });
       fetchRequests();
     } catch (err) {
       setError(err.response?.data?.detail || JSON.stringify(err.response?.data) || "Submission failed.");
@@ -92,8 +83,18 @@ export default function StudentRouteChange() {
         <div style={{ padding: "24px", maxWidth: "760px" }}>
           <h2 style={{ marginBottom: "4px" }}>Request a Route Change</h2>
           <p style={{ color: "#6b7280", fontSize: "14px", marginBottom: "24px" }}>
-            Submit a request to change your transport route. Admin will review seat availability before approving.
+            Select your new stop below. The system will automatically determine the best route for you.
           </p>
+
+          {/* Current assignment info */}
+          {currentRoute && (
+            <div style={currentInfoStyle}>
+              <span style={{ fontSize: "12px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em" }}>Current Assignment</span>
+              <p style={{ margin: "6px 0 0", fontSize: "14px" }}>
+                <strong>Route:</strong> {currentRoute} &nbsp;·&nbsp; <strong>Stop:</strong> {currentStop}
+              </p>
+            </div>
+          )}
 
           {/* ── Submit Form ── */}
           {!hasPending && (
@@ -105,35 +106,22 @@ export default function StudentRouteChange() {
 
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Requested Route</label>
-                  <select
-                    style={selectStyle}
-                    value={form.requested_route_id}
-                    onChange={(e) => setForm({ ...form, requested_route_id: e.target.value, requested_stop_id: "" })}
-                  >
-                    <option value="">— Select route —</option>
-                    {routes
-                      .filter((r) => r.name !== currentRoute) // ✅ exclude student's current route
-                      .map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                  </select>
-                </div>
-
-                <div style={fieldStyle}>
-                  <label style={labelStyle}>Requested Stop</label>
+                  <label style={labelStyle}>New Stop</label>
                   <select
                     style={selectStyle}
                     value={form.requested_stop_id}
-                    disabled={!form.requested_route_id}
-                    onChange={(e) => setForm({ ...form, requested_stop_id: e.target.value })}
+                    onChange={(e) => setForm({ requested_stop_id: e.target.value })}
                   >
-                    <option value="">— Select stop —</option>
-                    {stops.map((s) => (
-                      // ✅ value={s.stop} — the actual Stop FK id, not the RouteStop id
-                      <option key={s.id} value={s.stop}>{s.stop_name}</option>
-                    ))}
+                    <option value="">— Select your new stop —</option>
+                    {allStops
+                      .filter((s) => s.name !== currentStop)  // exclude current stop
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
                   </select>
+                  <span style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
+                    The route will be auto-assigned based on stop proximity.
+                  </span>
                 </div>
 
                 <button type="submit" disabled={submitting} style={submitBtnStyle}>
@@ -160,10 +148,10 @@ export default function StudentRouteChange() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <p style={{ margin: "0 0 4px", fontWeight: "600", fontSize: "14px" }}>
-                        {req.current_route?.name} → {req.requested_route?.name}
+                        {req.current_route?.name} → {req.requested_route?.name || "Auto-assigned"}
                       </p>
                       <p style={{ margin: "0 0 4px", fontSize: "13px", color: "#6b7280" }}>
-                        Stop: {req.requested_stop?.name} · Semester: {req.registration?.semester?.name}
+                        New Stop: {req.requested_stop?.name} · Semester: {req.registration?.semester?.name}
                       </p>
                       {req.admin_remarks && req.admin_remarks !== "N/A" && (
                         <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#6b7280" }}>
@@ -198,6 +186,7 @@ export default function StudentRouteChange() {
   );
 }
 
+const currentInfoStyle = { background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "10px", padding: "14px 18px", marginBottom: "20px" };
 const cardStyle        = { border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px", marginBottom: "8px", background: "#fff" };
 const requestCardStyle = { border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px", background: "#fff" };
 const fieldStyle       = { display: "flex", flexDirection: "column", gap: "6px" };

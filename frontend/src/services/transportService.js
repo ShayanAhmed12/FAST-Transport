@@ -84,3 +84,13 @@ export const approveRouteChangeRequest = (id, admin_remarks = "") =>
  
 export const denyRouteChangeRequest = (id, admin_remarks = "") =>
   api.post(`/api/route-change-requests/${id}/deny/`, { admin_remarks });
+
+// ── Stripe Payment + OTP ──
+export const createPaymentIntent = (regId) =>
+  api.post(`/api/transport-registrations/${regId}/create-payment-intent/`);
+
+export const confirmStripePayment = (regId) =>
+  api.post(`/api/transport-registrations/${regId}/confirm-stripe-payment/`);
+
+export const verifyPaymentOtp = (regId, otp) =>
+  api.post(`/api/transport-registrations/${regId}/verify-payment-otp/`, { otp });

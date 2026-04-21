@@ -652,7 +652,7 @@ class RouteChangeRequestViewSet(viewsets.ModelViewSet):
         ).order_by("-requested_at")
  
     def perform_create(self, serializer):
-        """Student submits a route change request."""
+        """Student submits a route change request — route is auto-determined from stop."""
         user = self.request.user
         profile = StudentProfile.objects.filter(user=user).first()
         if not profile:
@@ -669,7 +669,7 @@ class RouteChangeRequestViewSet(viewsets.ModelViewSet):
         if not registration:
             raise ValidationError("No active semester registration found.")
  
-        if registration.route == requested_route:
+        if requested_route and registration.route == requested_route:
             raise ValidationError("You are already on this route.")
  
         # Block duplicate pending requests
@@ -682,8 +682,6 @@ class RouteChangeRequestViewSet(viewsets.ModelViewSet):
         serializer.save(
             registration=registration,
             current_route=registration.route,
-            requested_route=requested_route,
-            requested_stop=requested_stop,
             status="Pending",
         )
  
@@ -1382,6 +1380,193 @@ def student_bus_tracking(request):
         "bus": bus_info,
         "student_stop_name": registration.stop.name,
     })
+
+
+# ── Stripe Payment + OTP Verification ────────────────────────────────────────
+
+import string as _string
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_payment_intent(request, pk):
+    """
+    POST /api/transport-registrations/<pk>/create-payment-intent/
+    Creates a Stripe PaymentIntent in test/sandbox mode.
+    Returns client_secret for the frontend to confirm payment.
+    """
+    profile = StudentProfile.objects.filter(user=request.user).first()
+    if not profile:
+        return Response({"detail": "Student profile not found"}, status=404)
+
+    registration = TransportRegistration.objects.filter(pk=pk, student=profile).first()
+    if not registration:
+        return Response({"detail": "Registration not found"}, status=404)
+
+    challan = Challan.objects.filter(registration=registration).first()
+    if not challan:
+        return Response({"detail": "Challan not found"}, status=404)
+
+    if challan.status == "paid":
+        return Response({"detail": "Already paid"}, status=400)
+
+    stripe_key = getattr(settings, "STRIPE_SECRET_KEY", "")
+    if stripe_key and stripe_key.startswith("sk_test_") and stripe_key != "sk_test_placeholder":
+        import stripe as _stripe
+        _stripe.api_key = stripe_key
+        try:
+            intent = _stripe.PaymentIntent.create(
+                amount=int(challan.amount * 100),
+                currency="pkr",
+                metadata={"challan_id": challan.id, "user_id": request.user.id},
+            )
+            return Response({
+                "client_secret": intent.client_secret,
+                "payment_intent_id": intent.id,
+                "amount": str(challan.amount),
+                "simulated": False,
+            })
+        except Exception as e:
+            return Response({"detail": f"Stripe error: {str(e)}"}, status=500)
+    else:
+        import uuid
+        simulated_secret = f"pi_sim_{uuid.uuid4().hex[:16]}_secret_{uuid.uuid4().hex[:16]}"
+        return Response({
+            "client_secret": simulated_secret,
+            "payment_intent_id": f"pi_sim_{uuid.uuid4().hex[:16]}",
+            "amount": str(challan.amount),
+            "simulated": True,
+        })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def confirm_stripe_payment(request, pk):
+    """
+    POST /api/transport-registrations/<pk>/confirm-stripe-payment/
+    Called after Stripe confirms payment on frontend.
+    Generates OTP, emails it, and returns 200.
+    """
+    profile = StudentProfile.objects.filter(user=request.user).first()
+    if not profile:
+        return Response({"detail": "Student profile not found"}, status=404)
+
+    registration = TransportRegistration.objects.filter(pk=pk, student=profile).first()
+    if not registration:
+        return Response({"detail": "Registration not found"}, status=404)
+
+    challan = Challan.objects.filter(registration=registration).first()
+    if not challan:
+        return Response({"detail": "Challan not found"}, status=404)
+
+    if challan.status == "paid":
+        return Response({"detail": "Already paid"}, status=400)
+
+    otp_code = ''.join(random.choices(_string.digits, k=6))
+    expires = timezone.now() + timedelta(minutes=10)
+
+    OTPVerification.objects.update_or_create(
+        user=request.user,
+        defaults={"otp": otp_code, "expires_at": expires, "is_used": False},
+    )
+
+    try:
+        send_mail(
+            subject="FAST Transport — Payment OTP",
+            message=(
+                f"Hello {request.user.username},\n\n"
+                f"Your payment verification OTP is: {otp_code}\n\n"
+                f"This code expires in 10 minutes.\n\n"
+                f"Amount: PKR {challan.amount}\n"
+                f"If you did not initiate this payment, please ignore this email."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[request.user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        pass  # Don't block if email sending fails in dev
+
+    return Response({
+        "message": "OTP sent to your email",
+        "email_hint": request.user.email[:3] + "***" + request.user.email[request.user.email.index("@"):],
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def verify_payment_otp(request, pk):
+    """
+    POST /api/transport-registrations/<pk>/verify-payment-otp/
+    Body: { "otp": "123456" }
+    Verifies the OTP and marks challan as paid + creates FeeVerification.
+    """
+    otp_input = request.data.get("otp", "").strip()
+    if not otp_input:
+        return Response({"detail": "OTP is required."}, status=400)
+
+    profile = StudentProfile.objects.filter(user=request.user).first()
+    if not profile:
+        return Response({"detail": "Student profile not found"}, status=404)
+
+    registration = TransportRegistration.objects.filter(pk=pk, student=profile).first()
+    if not registration:
+        return Response({"detail": "Registration not found"}, status=404)
+
+    challan = Challan.objects.filter(registration=registration).first()
+    if not challan:
+        return Response({"detail": "Challan not found"}, status=404)
+
+    if challan.status == "paid":
+        return Response({"detail": "Already paid"}, status=400)
+
+    try:
+        otp_record = OTPVerification.objects.get(user=request.user)
+    except OTPVerification.DoesNotExist:
+        return Response({"detail": "No OTP found. Please request a new one."}, status=404)
+
+    if otp_record.is_used:
+        return Response({"detail": "OTP has already been used."}, status=400)
+
+    if timezone.now() > otp_record.expires_at:
+        return Response({"detail": "OTP has expired. Please request a new one."}, status=400)
+
+    if otp_record.otp != otp_input:
+        return Response({"detail": "Invalid OTP. Please try again."}, status=400)
+
+    with transaction.atomic():
+        otp_record.is_used = True
+        otp_record.save()
+
+        challan.status = "paid"
+        challan.save()
+
+        FeeVerification.objects.get_or_create(
+            student=profile,
+            semester=registration.semester,
+            defaults={
+                "amount": challan.amount,
+                "challan_number": f"CHN-{challan.id:04d}",
+            },
+        )
+
+        admin_users = User.objects.filter(is_staff=True)
+        for admin in admin_users:
+            Notification.objects.create(
+                user=admin,
+                title="Fee Payment Received (Stripe + OTP)",
+                message=(
+                    f"Student {profile.roll_number} has paid transport fees "
+                    f"for {registration.semester.name} via Stripe. "
+                    f"Amount: PKR {challan.amount}. Please verify."
+                ),
+                type="info",
+            )
+
+    return Response({
+        "detail": "Payment verified successfully. Challan marked as paid.",
+        "challan_status": "paid",
+    })
+
 
 
 

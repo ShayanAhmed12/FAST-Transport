@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: fasttransportdb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Pubgpro1
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -33,7 +33,7 @@ services:
       - DATABASE_HOST=db
       - DATABASE_NAME=fasttransportdb
       - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=Pubgpro1
+      - DATABASE_PASSWORD=${DB_PASSWORD}
       - DATABASE_PORT=5432
 
   frontend:

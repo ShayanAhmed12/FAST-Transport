@@ -210,7 +210,7 @@ class Complaint(models.Model):
 class RouteChangeRequest(models.Model):
     registration = models.ForeignKey(SemesterRegistration, on_delete=models.CASCADE)
     current_route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="current_routes")
-    requested_route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="requested_routes")
+    requested_route = models.ForeignKey(Route, on_delete=models.SET_NULL, related_name="requested_routes", null=True, blank=True)
     requested_stop = models.ForeignKey(Stop, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, default="Pending")
     admin_remarks = models.TextField(default="N/A")

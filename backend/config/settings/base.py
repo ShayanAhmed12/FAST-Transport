@@ -77,11 +77,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'fastnuces.transport@gmail.com'
-EMAIL_HOST_PASSWORD = 'zula zqmx kekl dtoj'  # Gmail App Password
-DEFAULT_FROM_EMAIL = 'noreply@fast.edu'
+EMAIL_HOST_USER = 'a8d609001@smtp-brevo.com'
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")  # brevo SMTP password
 
-DEFAULT_FROM_EMAIL = 'noreply@fast.edu'
+DEFAULT_FROM_EMAIL = 'FAST Transport <thundermarks.agency@gmail.com>'

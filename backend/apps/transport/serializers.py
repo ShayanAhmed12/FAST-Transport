@@ -338,12 +338,7 @@ class RouteChangeRequestSerializer(serializers.ModelSerializer):
     requested_route = RouteSerializer(read_only=True)
     requested_stop = StopSerializer(read_only=True)
  
-    # Write (IDs, for student submission)
-    requested_route_id = serializers.PrimaryKeyRelatedField(
-        queryset=Route.objects.all(),
-        source="requested_route",
-        write_only=True,
-    )
+    # Write — only stop ID, route is auto-determined
     requested_stop_id = serializers.PrimaryKeyRelatedField(
         queryset=Stop.objects.all(),
         source="requested_stop",
@@ -361,7 +356,6 @@ class RouteChangeRequestSerializer(serializers.ModelSerializer):
             "current_route",
             "requested_route",
             "requested_stop",
-            "requested_route_id",   # write-only
             "requested_stop_id",    # write-only
             "status",
             "admin_remarks",
@@ -370,12 +364,26 @@ class RouteChangeRequestSerializer(serializers.ModelSerializer):
             "available_seats",
         ]
         read_only_fields = ["requested_at", "resolved_at", "status", "admin_remarks"]
+
+    def validate(self, data):
+        """Auto-resolve which route serves the requested stop."""
+        stop = data.get("requested_stop")
+        if stop:
+            route_stop = RouteStop.objects.filter(stop=stop).select_related("route").first()
+            if not route_stop:
+                raise serializers.ValidationError(
+                    {"requested_stop_id": "No route currently serves this stop."}
+                )
+            data["requested_route"] = route_stop.route
+        return data
  
     def get_available_seats(self, obj):
         """How many seats are free on the requested route for that semester."""
         registration = obj.registration
         if not registration:
             return None
+        if not obj.requested_route:
+            return 0
         assignment = RouteAssignment.objects.filter(
             route=obj.requested_route,
             semester=registration.semester,

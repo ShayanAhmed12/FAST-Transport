@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import StudentSignupView, CurrentUserView
 from .views import students_list, get_challan, pay_challan, verify_fee, list_fee_verifications
 from .views import student_bus_tracking
+from .views import create_payment_intent, confirm_stripe_payment, verify_payment_otp
 
 router = DefaultRouter()
 
@@ -42,4 +43,7 @@ urlpatterns = [
     path("fee-verifications/list/", list_fee_verifications),
     path("fee-verifications/<int:pk>/verify/", verify_fee),
     path('student/bus-tracking/', student_bus_tracking, name='student-bus-tracking'),
+    path('transport-registrations/<int:pk>/create-payment-intent/', create_payment_intent, name='create-payment-intent'),
+    path('transport-registrations/<int:pk>/confirm-stripe-payment/', confirm_stripe_payment, name='confirm-stripe-payment'),
+    path('transport-registrations/<int:pk>/verify-payment-otp/', verify_payment_otp, name='verify-payment-otp'),
 ] + router.urls  # Router LAST
