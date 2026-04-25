@@ -1,7 +1,16 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AnonymousUser, User
 from django.test import TestCase
+from rest_framework.test import APIRequestFactory
 from rest_framework.test import APIClient
+from unittest.mock import patch
 
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsStudent, IsStudentCreateOnly
+from .serializers import RouteAssignmentSerializer
+from .seatallocation import (
+	_get_next_available_seat_number,
+	allocate_seat_for_student,
+	allocate_seat_on_assignment,
+)
 from .models import (
 	Bus,
 	Driver,
@@ -188,3 +197,532 @@ class TransportAllocationFlowTests(TestCase):
 
 		self.assertEqual(response.status_code, 400)
 		self.assertIn("not verified", response.data.get("detail", ""))
+
+
+class PermissionRulesTests(TestCase):
+	def setUp(self):
+		self.factory = APIRequestFactory()
+		self.student = User.objects.create_user(username="student_perm", password="pass1234")
+		self.admin = User.objects.create_user(
+			username="admin_perm",
+			password="adminpass",
+			is_staff=True,
+		)
+
+	def _req(self, method, user):
+		request = getattr(self.factory, method)("/api/test/")
+		request.user = user
+		return request
+
+	def test_is_admin_allows_only_authenticated_staff(self):
+		perm = IsAdmin()
+
+		self.assertFalse(perm.has_permission(self._req("get", AnonymousUser()), None))
+		self.assertFalse(perm.has_permission(self._req("get", self.student), None))
+		self.assertTrue(perm.has_permission(self._req("get", self.admin), None))
+
+	def test_is_student_allows_any_authenticated_user(self):
+		perm = IsStudent()
+
+		self.assertFalse(perm.has_permission(self._req("get", AnonymousUser()), None))
+		self.assertTrue(perm.has_permission(self._req("get", self.student), None))
+		self.assertTrue(perm.has_permission(self._req("get", self.admin), None))
+
+	def test_is_admin_or_read_only_permission_matrix(self):
+		perm = IsAdminOrReadOnly()
+
+		self.assertFalse(perm.has_permission(self._req("get", AnonymousUser()), None))
+		self.assertFalse(perm.has_permission(self._req("post", AnonymousUser()), None))
+
+		self.assertTrue(perm.has_permission(self._req("get", self.student), None))
+		self.assertFalse(perm.has_permission(self._req("post", self.student), None))
+		self.assertFalse(perm.has_permission(self._req("patch", self.student), None))
+
+		self.assertTrue(perm.has_permission(self._req("get", self.admin), None))
+		self.assertTrue(perm.has_permission(self._req("post", self.admin), None))
+		self.assertTrue(perm.has_permission(self._req("patch", self.admin), None))
+
+	def test_is_student_create_only_permission_matrix(self):
+		perm = IsStudentCreateOnly()
+
+		self.assertFalse(perm.has_permission(self._req("get", AnonymousUser()), None))
+		self.assertFalse(perm.has_permission(self._req("post", AnonymousUser()), None))
+
+		self.assertTrue(perm.has_permission(self._req("get", self.student), None))
+		self.assertTrue(perm.has_permission(self._req("post", self.student), None))
+		self.assertFalse(perm.has_permission(self._req("patch", self.student), None))
+
+		self.assertTrue(perm.has_permission(self._req("get", self.admin), None))
+		self.assertTrue(perm.has_permission(self._req("post", self.admin), None))
+		self.assertTrue(perm.has_permission(self._req("patch", self.admin), None))
+
+
+class SeatAllocationServiceTests(TestCase):
+	def setUp(self):
+		self.semester = Semester.objects.create(
+			name="Fall",
+			year=2026,
+			term="F",
+			is_active=True,
+			registration_open=True,
+		)
+		self.other_semester = Semester.objects.create(
+			name="Spring",
+			year=2027,
+			term="S",
+			is_active=True,
+			registration_open=True,
+		)
+
+		self.route = Route.objects.create(name="Route Core", is_active=True)
+		self.other_route = Route.objects.create(name="Route Other", is_active=True)
+		self.stop = Stop.objects.create(name="Main Stop")
+
+		self.bus = Bus.objects.create(bus_number="BUS-CORE", capacity=4, is_active=True)
+		self.driver = Driver.objects.create(name="Driver Core", is_available=True)
+		self.assignment = RouteAssignment.objects.create(
+			route=self.route,
+			bus=self.bus,
+			driver=self.driver,
+			semester=self.semester,
+			is_active=True,
+		)
+
+	def _registration(self, suffix, route=None, semester=None):
+		user = User.objects.create_user(username=f"seat_user_{suffix}", password="pass1234")
+		profile = StudentProfile.objects.create(
+			user=user,
+			roll_number=f"22F-SEAT-{suffix}",
+			department="CS",
+			batch="22",
+			phone="000",
+			address="Address",
+		)
+		return SemesterRegistration.objects.create(
+			student=profile,
+			semester=semester or self.semester,
+			route=route or self.route,
+			stop=self.stop,
+			status="Pending",
+		)
+
+	def test_next_available_seat_number_prefers_lowest_gap(self):
+		reg1 = self._registration("001")
+		reg2 = self._registration("002")
+
+		SeatAllocation.objects.create(
+			registration=reg1,
+			route_assignment=self.assignment,
+			seat_number=1,
+		)
+		SeatAllocation.objects.create(
+			registration=reg2,
+			route_assignment=self.assignment,
+			seat_number=3,
+		)
+
+		self.assertEqual(_get_next_available_seat_number(self.assignment), 2)
+
+	def test_allocate_seat_for_student_is_idempotent(self):
+		registration = self._registration("003")
+
+		first = allocate_seat_for_student(registration)
+		second = allocate_seat_for_student(registration)
+
+		self.assertEqual(first, "Seat Allocated")
+		self.assertEqual(second, "Seat already allocated")
+		self.assertEqual(SeatAllocation.objects.filter(registration=registration).count(), 1)
+
+	def test_allocate_seat_for_student_returns_already_on_waitlist(self):
+		registration = self._registration("004")
+		Waitlist.objects.create(registration=registration, position=1)
+
+		result = allocate_seat_for_student(registration)
+
+		self.assertEqual(result, "Already on waitlist")
+		self.assertEqual(SeatAllocation.objects.filter(registration=registration).count(), 0)
+		self.assertEqual(Waitlist.objects.filter(registration=registration).count(), 1)
+
+	def test_allocate_seat_on_assignment_rejects_route_or_semester_mismatch(self):
+		registration = self._registration("005")
+		mismatch_assignment = RouteAssignment.objects.create(
+			route=self.route,
+			bus=Bus.objects.create(bus_number="BUS-MISMATCH", capacity=2, is_active=True),
+			driver=Driver.objects.create(name="Driver Mismatch", is_available=True),
+			semester=self.other_semester,
+			is_active=True,
+		)
+
+		result = allocate_seat_on_assignment(registration, mismatch_assignment)
+
+		self.assertEqual(result, "Assignment does not match student's route and semester")
+
+	def test_allocate_seat_on_assignment_rejects_inactive_assignment(self):
+		registration = self._registration("006")
+		inactive_assignment = RouteAssignment.objects.create(
+			route=self.route,
+			bus=Bus.objects.create(bus_number="BUS-INACTIVE-A", capacity=2, is_active=True),
+			driver=Driver.objects.create(name="Driver Inactive A", is_available=True),
+			semester=self.semester,
+			is_active=False,
+		)
+
+		result = allocate_seat_on_assignment(registration, inactive_assignment)
+
+		self.assertEqual(result, "Route assignment is inactive")
+
+	def test_allocate_seat_on_assignment_rejects_inactive_bus(self):
+		registration = self._registration("007")
+		inactive_bus_assignment = RouteAssignment.objects.create(
+			route=self.route,
+			bus=Bus.objects.create(bus_number="BUS-INACTIVE-B", capacity=2, is_active=False),
+			driver=Driver.objects.create(name="Driver Inactive B", is_available=True),
+			semester=self.semester,
+			is_active=True,
+		)
+
+		result = allocate_seat_on_assignment(registration, inactive_bus_assignment)
+
+		self.assertEqual(result, "Assigned bus is inactive")
+
+
+class FeeVerificationApiRegressionTests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+
+		self.admin = User.objects.create_user(
+			username="admin_fee_reg",
+			password="adminpass",
+			is_staff=True,
+		)
+
+		student_user = User.objects.create_user(username="student_fee_reg", password="pass1234")
+		self.profile = StudentProfile.objects.create(
+			user=student_user,
+			roll_number="22F-FEE-001",
+			department="CS",
+			batch="22",
+			phone="000",
+			address="Address",
+		)
+
+		self.semester = Semester.objects.create(
+			name="Summer",
+			year=2026,
+			term="U",
+			is_active=True,
+			registration_open=True,
+		)
+		self.route = Route.objects.create(name="Route Verify", is_active=True)
+		self.stop = Stop.objects.create(name="Stop Verify")
+
+		TransportRegistration.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			route=self.route,
+			stop=self.stop,
+			status="Pending",
+		)
+
+		self.fee = FeeVerification.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			amount=45000,
+			challan_number="CHN-VERIFY-001",
+			is_verified=False,
+		)
+
+		RouteAssignment.objects.create(
+			route=self.route,
+			bus=Bus.objects.create(bus_number="BUS-VERIFY", capacity=2, is_active=True),
+			driver=Driver.objects.create(name="Driver Verify", is_available=True),
+			semester=self.semester,
+			is_active=True,
+		)
+
+	def test_verify_fee_endpoint_does_not_duplicate_seat_allocation(self):
+		self.client.force_authenticate(user=self.admin)
+
+		first = self.client.post(f"/api/fee-verifications/{self.fee.id}/verify/")
+		second = self.client.post(f"/api/fee-verifications/{self.fee.id}/verify/")
+
+		self.assertEqual(first.status_code, 200)
+		self.assertEqual(second.status_code, 200)
+
+		registration = SemesterRegistration.objects.get(
+			student=self.profile,
+			semester=self.semester,
+		)
+		self.assertEqual(SeatAllocation.objects.filter(registration=registration).count(), 1)
+
+
+class RouteAssignmentSerializerValidationTests(TestCase):
+	def setUp(self):
+		self.semester = Semester.objects.create(
+			name="Serializer Semester",
+			year=2027,
+			term="S",
+			is_active=True,
+			registration_open=True,
+		)
+		self.route = Route.objects.create(name="Serializer Route", is_active=True)
+		self.bus = Bus.objects.create(bus_number="BUS-SER-1", capacity=40, is_active=True)
+		self.driver = Driver.objects.create(name="Driver Ser 1", is_available=True)
+
+	def _payload(self, **overrides):
+		payload = {
+			"route_id": self.route.id,
+			"bus_id": self.bus.id,
+			"driver_id": self.driver.id,
+			"semester_id": self.semester.id,
+			"is_active": True,
+		}
+		payload.update(overrides)
+		return payload
+
+	def test_rejects_activation_when_route_inactive(self):
+		inactive_route = Route.objects.create(name="Inactive Route", is_active=False)
+		serializer = RouteAssignmentSerializer(data=self._payload(route_id=inactive_route.id))
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn("route is inactive", str(serializer.errors))
+
+	def test_rejects_activation_when_bus_inactive(self):
+		inactive_bus = Bus.objects.create(bus_number="BUS-SER-2", capacity=40, is_active=False)
+		serializer = RouteAssignmentSerializer(data=self._payload(bus_id=inactive_bus.id))
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn("bus is inactive", str(serializer.errors))
+
+	def test_rejects_activation_when_driver_unavailable(self):
+		unavailable_driver = Driver.objects.create(name="Driver Ser 2", is_available=False)
+		serializer = RouteAssignmentSerializer(data=self._payload(driver_id=unavailable_driver.id))
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn("driver is unavailable", str(serializer.errors))
+
+	def test_rejects_activation_when_semester_inactive(self):
+		inactive_semester = Semester.objects.create(
+			name="Inactive Sem",
+			year=2028,
+			term="F",
+			is_active=False,
+			registration_open=True,
+		)
+		serializer = RouteAssignmentSerializer(data=self._payload(semester_id=inactive_semester.id))
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn("semester is inactive", str(serializer.errors))
+
+	def test_rejects_duplicate_bus_assignment_in_same_semester(self):
+		RouteAssignment.objects.create(
+			route=self.route,
+			bus=self.bus,
+			driver=self.driver,
+			semester=self.semester,
+			is_active=True,
+		)
+
+		other_driver = Driver.objects.create(name="Driver Ser 3", is_available=True)
+		serializer = RouteAssignmentSerializer(data=self._payload(driver_id=other_driver.id))
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn("bus is already assigned", str(serializer.errors))
+
+	def test_rejects_duplicate_driver_assignment_in_same_semester(self):
+		RouteAssignment.objects.create(
+			route=self.route,
+			bus=self.bus,
+			driver=self.driver,
+			semester=self.semester,
+			is_active=True,
+		)
+
+		other_bus = Bus.objects.create(bus_number="BUS-SER-3", capacity=40, is_active=True)
+		serializer = RouteAssignmentSerializer(data=self._payload(bus_id=other_bus.id))
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn("driver is already assigned", str(serializer.errors))
+
+	def test_update_same_instance_does_not_fail_duplicate_checks(self):
+		assignment = RouteAssignment.objects.create(
+			route=self.route,
+			bus=self.bus,
+			driver=self.driver,
+			semester=self.semester,
+			is_active=True,
+		)
+
+		serializer = RouteAssignmentSerializer(
+			instance=assignment,
+			data=self._payload(),
+			partial=True,
+		)
+
+		self.assertTrue(serializer.is_valid(), serializer.errors)
+
+
+class SignalHandlersTests(TestCase):
+	def setUp(self):
+		self.semester = Semester.objects.create(
+			name="Signal Sem",
+			year=2028,
+			term="S",
+			is_active=True,
+			registration_open=True,
+		)
+		self.other_semester = Semester.objects.create(
+			name="Signal Other Sem",
+			year=2028,
+			term="F",
+			is_active=True,
+			registration_open=True,
+		)
+
+		self.route = Route.objects.create(name="Signal Route", is_active=True)
+		self.other_route = Route.objects.create(name="Other Route", is_active=True)
+		self.stop = Stop.objects.create(name="Signal Stop")
+
+		self.bus = Bus.objects.create(bus_number="BUS-SIG-1", capacity=2, is_active=True)
+		self.other_bus = Bus.objects.create(bus_number="BUS-SIG-2", capacity=2, is_active=True)
+
+		self.driver = Driver.objects.create(name="Signal Driver", is_available=True)
+		self.other_driver = Driver.objects.create(name="Other Driver", is_available=True)
+
+		self.assignment = RouteAssignment.objects.create(
+			route=self.route,
+			bus=self.bus,
+			driver=self.driver,
+			semester=self.semester,
+			is_active=True,
+		)
+		self.unrelated_assignment = RouteAssignment.objects.create(
+			route=self.other_route,
+			bus=self.other_bus,
+			driver=self.other_driver,
+			semester=self.other_semester,
+			is_active=True,
+		)
+
+		self.user = User.objects.create_user(username="signal_user", password="pass1234")
+		self.profile = StudentProfile.objects.create(
+			user=self.user,
+			roll_number="22F-SIG-001",
+			department="CS",
+			batch="22",
+			phone="000",
+			address="Address",
+		)
+
+	def test_route_inactive_deactivates_matching_assignments_only(self):
+		self.route.is_active = False
+		self.route.save(update_fields=["is_active"])
+
+		self.assignment.refresh_from_db()
+		self.unrelated_assignment.refresh_from_db()
+		self.assertFalse(self.assignment.is_active)
+		self.assertTrue(self.unrelated_assignment.is_active)
+
+	def test_bus_inactive_deactivates_matching_assignments_only(self):
+		self.bus.is_active = False
+		self.bus.save(update_fields=["is_active"])
+
+		self.assignment.refresh_from_db()
+		self.unrelated_assignment.refresh_from_db()
+		self.assertFalse(self.assignment.is_active)
+		self.assertTrue(self.unrelated_assignment.is_active)
+
+	def test_driver_unavailable_deactivates_matching_assignments_only(self):
+		self.driver.is_available = False
+		self.driver.save(update_fields=["is_available"])
+
+		self.assignment.refresh_from_db()
+		self.unrelated_assignment.refresh_from_db()
+		self.assertFalse(self.assignment.is_active)
+		self.assertTrue(self.unrelated_assignment.is_active)
+
+	def test_semester_inactive_deactivates_matching_assignments_only(self):
+		self.semester.is_active = False
+		self.semester.save(update_fields=["is_active"])
+
+		self.assignment.refresh_from_db()
+		self.unrelated_assignment.refresh_from_db()
+		self.assertFalse(self.assignment.is_active)
+		self.assertTrue(self.unrelated_assignment.is_active)
+
+	@patch("apps.transport.signals.allocate_seat_for_student")
+	def test_fee_verification_signal_calls_allocation_when_verified(self, mock_allocate):
+		registration = SemesterRegistration.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			route=self.route,
+			stop=self.stop,
+			status="Pending",
+		)
+
+		FeeVerification.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			amount=5000,
+			is_verified=True,
+			challan_number="CHN-SIG-001",
+		)
+
+		mock_allocate.assert_called_once_with(registration)
+
+	@patch("apps.transport.signals.allocate_seat_for_student")
+	def test_fee_verification_signal_skips_unverified_fees(self, mock_allocate):
+		SemesterRegistration.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			route=self.route,
+			stop=self.stop,
+			status="Pending",
+		)
+
+		FeeVerification.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			amount=5000,
+			is_verified=False,
+			challan_number="CHN-SIG-002",
+		)
+
+		mock_allocate.assert_not_called()
+
+	@patch("apps.transport.signals.allocate_seat_for_student")
+	def test_fee_verification_signal_skips_when_registration_missing(self, mock_allocate):
+		FeeVerification.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			amount=5000,
+			is_verified=True,
+			challan_number="CHN-SIG-003",
+		)
+
+		mock_allocate.assert_not_called()
+
+	@patch("apps.transport.signals.allocate_seat_for_student")
+	def test_fee_verification_signal_skips_when_seat_already_exists(self, mock_allocate):
+		registration = SemesterRegistration.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			route=self.route,
+			stop=self.stop,
+			status="Approved",
+		)
+		SeatAllocation.objects.create(
+			registration=registration,
+			route_assignment=self.assignment,
+			seat_number=1,
+		)
+
+		FeeVerification.objects.create(
+			student=self.profile,
+			semester=self.semester,
+			amount=5000,
+			is_verified=True,
+			challan_number="CHN-SIG-004",
+		)
+
+		mock_allocate.assert_not_called()
