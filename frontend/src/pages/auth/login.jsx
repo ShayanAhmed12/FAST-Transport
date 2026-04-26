@@ -33,7 +33,7 @@ function Login() {
     <div style={styles.root}>
       <MeshGradient
   style={styles.shader}
-  colors={["#291919", "#ef9898", "#b31c1c", "#c42828"]}
+  colors={["#0f3247", "#62a1be", "#f5f8de", "#288dc4"]}
   distortion={0.5}
   swirl={0.3}
   speed={0.5}
