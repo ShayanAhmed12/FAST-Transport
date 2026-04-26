@@ -6,7 +6,7 @@ import { getBuses, createBus, updateBus } from "../../services/transportService"
 
 function BusesPage() {
   const [buses, setBuses] = useState([]);
-  const [form, setForm] = useState({ bus_number: "", capacity: "", model: "" });
+  const [form, setForm] = useState({ bus_number: "", capacity: "", model: "", tracker_token: "" });  
   const [pendingToggle, setPendingToggle] = useState(null);
 
   const fetchBuses = () =>
@@ -50,7 +50,7 @@ function BusesPage() {
     }
     try {
       await createBus(form);
-      setForm({ bus_number: "", capacity: "", model: "" });
+      setForm({ bus_number: "", capacity: "", model: "", tracker_token: "" });
       fetchBuses();
     } catch (err) {
       const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
@@ -63,6 +63,7 @@ function BusesPage() {
     { key: "total_seats", label: "Total Seats", render: (row) => row.total_seats ?? row.capacity },
     { key: "available_seats", label: "Available Seats", render: (row) => row.available_seats ?? row.capacity },
     { key: "model", label: "Model" },
+    { key: "tracker_token", label: "Tracker Token", render: (row) => row.tracker_token || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>Not set</span> },
     {
       key: "is_active",
       label: "Active",
@@ -134,6 +135,13 @@ function BusesPage() {
               name="model"
               placeholder="Model"
               value={form.model}
+              onChange={handleChange}
+              style={inputStyle}
+            />
+            <input
+              name="tracker_token"
+              placeholder="GPS Tracker Token (e.g. YgIw0Z)"
+              value={form.tracker_token}
               onChange={handleChange}
               style={inputStyle}
             />

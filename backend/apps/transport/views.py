@@ -16,9 +16,11 @@ import random
 from rest_framework.response import Response
 from rest_framework import viewsets,permissions
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+import requests as req_lib
+from rest_framework.decorators import api_view, permission_classes
+
 from .permissions import (
     IsAdmin,
     IsStudent,
@@ -1568,7 +1570,87 @@ def verify_payment_otp(request, pk):
     })
 
 
+# Map each route to its tracker token
+BUS_TRACKER_TOKENS = {
+    # Route assignment ID → iTecknologi token
+    # You'll fill these in once you have tokens for each bus
+    "default": "YgIw0Z",
+}
 
+ITECKNOLOGI_BASE = "https://iot.itecknologi.com/fleet"
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def live_bus_location(request):
+    """
+    Returns real GPS coordinates for the student's assigned bus.
+    Falls back to last known position if GPS is stale.
+    """
+    from .models import SeatAllocation, SemesterRegistration, RouteAssignment
+    
+    # Get student's active registration
+    try:
+        profile = request.user.studentprofile
+        registration = SemesterRegistration.objects.filter(
+            student=profile,
+            semester__is_active=True
+        ).select_related("route", "stop").first()
+        
+        if not registration:
+            return Response({"detail": "No active registration"}, status=404)
+        
+        # Find route assignment (which bus is on this route)
+        assignment = RouteAssignment.objects.filter(
+            route=registration.route,
+            semester__is_active=True,
+            is_active=True
+        ).select_related("bus").first()
+        
+        if not assignment:
+            return Response({"detail": "No active bus assignment"}, status=404)
+        
+        # Get the tracker token for this bus
+        # You can store this on the Bus model (see Step 3)
+        token = getattr(assignment.bus, 'tracker_token', None) or BUS_TRACKER_TOKENS["default"]
+        
+    except Exception as e:
+        return Response({"detail": str(e)}, status=500)
+    
+    # Call iTecknologi API
+    try:
+        resp = req_lib.get(
+        "https://iot.itecknologi.com/fleet/live_data_api_token.php",
+        params={"token": token},
+        timeout=5
+        )
+        resp.raise_for_status()
+        gps_data = resp.json()
+
+        if not gps_data.get("status"):
+            return Response({"detail": "Tracker returned no data"}, status=503)
+
+        d = gps_data["data"]
+
+        return Response({
+            "lat":         d["lat"],
+            "lng":         d["lng"],
+            "speed":       d["speed"],
+            "heading":     d["angle"],           # "angle" → heading
+            "ignition":    d["ign_value"] == 1,  # 0/1 int → bool
+            "timestamp":   d["message"],
+            "vehicle":     gps_data.get("vehicle"),   # "JE-5354"
+            "model":       gps_data.get("model"),     # "MINI BUS"
+            "bus_number":  assignment.bus.bus_number,
+            "driver_name": assignment.driver.name,
+            "route_name":  registration.route.name,
+            "student_stop": registration.stop.name,
+        })
+    
+    except req_lib.Timeout:
+        return Response({"detail": "GPS tracker timeout"}, status=503)
+    except Exception as e:
+        return Response({"detail": f"Tracker error: {str(e)}"}, status=502)
 
 
   

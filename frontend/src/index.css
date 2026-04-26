@@ -25,3 +25,11 @@ body {
   min-height: 100vh;
 }
 
+.maplibregl-canvas {
+  outline: none;
+}
+
+.maplibregl-map {
+  touch-action: pan-x pan-y;
+}
+

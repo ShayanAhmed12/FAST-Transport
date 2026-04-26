@@ -71,6 +71,7 @@ class Bus(models.Model):
     bus_number = models.CharField(max_length=20, default="N/A")
     capacity = models.IntegerField(default=0)
     model = models.CharField(max_length=100, default="N/A")
+    tracker_token = models.CharField(max_length=50, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

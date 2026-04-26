@@ -7,3 +7,4 @@ tzdata==2025.3
 djangorestframework-simplejwt==5.5.1
 psycopg2-binary
 stripe
+requests==2.32.3
