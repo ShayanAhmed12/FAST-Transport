@@ -1,35 +1,15 @@
 import { useEffect, useState } from "react";
-import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
+import PageShell, { PageTitle, ContentCard } from "../../components/PageShell";
+import { Spinner, Pill, Banner, DetailRow } from "../../components/ui";
+import { colors, fonts } from "../../theme";
 import { getDashboard } from "../../services/transportService";
-
-function StatusBadge({ status }) {
-  const colors = {
-    Pending: "#f0ad4e",
-    Approved: "#5cb85c",
-    Rejected: "#d9534f",
-    Active: "#5cb85c",
-  };
-  return (
-    <span
-      style={{
-        background: colors[status] || "#aaa",
-        color: "#fff",
-        padding: "2px 8px",
-        borderRadius: "4px",
-        fontSize: "0.85em",
-      }}
-    >
-      {status}
-    </span>
-  );
-}
 
 function StudentTransport() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const pendingAssignmentMessage = "Fees paid; Admin will assign seats shortly.";
-  const unpaidRegistrationMessage = "Registration submitted. Please pay transport fee to proceed.";
+
+  const pendingMsg = "Fees paid; Admin will assign seats shortly.";
+  const unpaidMsg  = "Registration submitted. Please pay transport fee to proceed.";
 
   useEffect(() => {
     getDashboard()
@@ -37,99 +17,92 @@ function StudentTransport() {
       .catch(() => setError("Failed to load transport data."));
   }, []);
 
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
-  if (!data) return <p>Loading...</p>;
+  if (error) return <PageShell role="student" title="My Transport"><Banner variant="danger">{error}</Banner></PageShell>;
+  if (!data)  return <PageShell role="student" title="My Transport"><Spinner /></PageShell>;
 
   const { profile, active_registration, seat, waitlist_position, fee_summary } = data;
-  const normalizedStatus = (active_registration?.status || "").toLowerCase();
+  const normStatus = (active_registration?.status || "").toLowerCase();
   const hasSubmittedFee = Boolean(active_registration?.fee_submitted);
-  const shouldShowPendingAssignmentStatus =
-    !seat && hasSubmittedFee && ["pending", "approved", "payment_submitted"].includes(normalizedStatus);
-  const displayStatus = shouldShowPendingAssignmentStatus
-    ? pendingAssignmentMessage
-    : active_registration?.status;
-  const hasFullAssignment = Boolean(
-    profile && seat && active_registration?.route && active_registration?.bus
-  );
+  const shouldShowPending = !seat && hasSubmittedFee && ["pending", "approved", "payment_submitted"].includes(normStatus);
+  const displayStatus = shouldShowPending ? pendingMsg : active_registration?.status;
+  const hasFullAssignment = Boolean(profile && seat && active_registration?.route && active_registration?.bus);
 
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar role="student" />
-      <div style={{ flex: 1 }}>
-        <Navbar title="My Transport" />
-        <div style={{ padding: "24px", maxWidth: "800px" }}>
-          <h1>My Transport</h1>
+    <PageShell role="student" title="My Transport">
+      <PageTitle sub="Your current semester transport details.">My Transport</PageTitle>
 
-          <section style={cardStyle}>
-            <h2>Current Semester Registration</h2>
-            {active_registration ? (
+      {/* Registration */}
+      <ContentCard>
+        <h3 style={sectionH}>Current Semester Registration</h3>
+        {active_registration ? (
+          <>
+            <DetailRow label="Semester" value={active_registration.semester} />
+            <DetailRow label="Bus"      value={active_registration.bus || "Pending assignment"} />
+            <DetailRow label="Route"    value={active_registration.route} />
+            <DetailRow label="Stop"     value={active_registration.stop} />
+            <DetailRow label="Status"   value={
+              <Pill
+                label={displayStatus}
+                variant={normStatus === "approved" ? "success" : normStatus === "rejected" ? "danger" : "warning"}
+              />
+            } />
+            {!seat && !waitlist_position && !hasSubmittedFee && (
+              <Banner variant="warning" style={{ marginTop: "12px" }}>{unpaidMsg}</Banner>
+            )}
+            {seat && <DetailRow label="Seat Number" value={`#${seat.seat_number}`} />}
+            {waitlist_position && <DetailRow label="Waitlist Position" value={`#${waitlist_position}`} />}
+            {hasFullAssignment && (
               <>
-                <p><strong>Semester:</strong> {active_registration.semester}</p>
-                <p><strong>Bus:</strong> {active_registration.bus || "Pending assignment"}</p>
-                <p><strong>Route:</strong> {active_registration.route}</p>
-                <p><strong>Stop:</strong> {active_registration.stop}</p>
-                <p><strong>Status:</strong> <StatusBadge status={displayStatus} /></p>
-                {!seat && !waitlist_position && !hasSubmittedFee && (
-                  <p style={{ color: "#856404" }}>{unpaidRegistrationMessage}</p>
-                )}
-                {seat && <p><strong>Seat Number:</strong> {seat.seat_number}</p>}
-                {waitlist_position && <p><strong>Waitlist Position:</strong> #{waitlist_position}</p>}
-                {hasFullAssignment && (
-                  <>
-                    <hr style={{ margin: "12px 0" }} />
-                    <h3 style={{ marginBottom: "8px" }}>Student Details</h3>
-                    <p><strong>Roll No:</strong> {profile.roll_number}</p>
-                    <p><strong>Department:</strong> {profile.department}</p>
-                    <p><strong>Batch:</strong> {profile.batch}</p>
-                  </>
-                )}
+                <div style={{ borderTop: `1px solid ${colors.borderLight}`, margin: "14px 0" }} />
+                <h4 style={{ ...sectionH, fontSize: "13px", marginBottom: "8px" }}>Student Details</h4>
+                <DetailRow label="Roll No"     value={profile.roll_number} />
+                <DetailRow label="Department"  value={profile.department} />
+                <DetailRow label="Batch"       value={profile.batch} />
               </>
-            ) : (
-              <p>{unpaidRegistrationMessage}</p>
             )}
-          </section>
+          </>
+        ) : (
+          <p style={{ margin: 0, color: colors.textSecondary, fontSize: "13.5px" }}>{unpaidMsg}</p>
+        )}
+      </ContentCard>
 
-          <section style={cardStyle}>
-            <h2>Fee Summary</h2>
-            {fee_summary?.length > 0 ? (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Semester</th>
-                    <th style={thStyle}>Amount</th>
-                    <th style={thStyle}>Challan #</th>
-                    <th style={thStyle}>Verified</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fee_summary.map((f, i) => (
-                    <tr key={i}>
-                      <td style={tdStyle}>{f.semester}</td>
-                      <td style={tdStyle}>Rs. {f.amount}</td>
-                      <td style={tdStyle}>{f.challan_number}</td>
-                      <td style={tdStyle}>{f.is_verified ? "Yes" : "No"}</td>
-                    </tr>
+      {/* Fee Summary */}
+      <ContentCard>
+        <h3 style={sectionH}>Fee Summary</h3>
+        {fee_summary?.length > 0 ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
+              <thead>
+                <tr style={{ background: colors.tableHeaderBg }}>
+                  {["Semester", "Amount", "Challan #", "Verified"].map(h => (
+                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: "700", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: colors.textSecondary, borderBottom: `1px solid ${colors.borderLight}` }}>
+                      {h}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            ) : (
-              <p>No fee records found.</p>
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
+                </tr>
+              </thead>
+              <tbody>
+                {fee_summary.map((f, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${colors.tableRowBorder}` }}>
+                    <td style={{ padding: "10px 14px" }}>{f.semester}</td>
+                    <td style={{ padding: "10px 14px" }}>Rs. {f.amount}</td>
+                    <td style={{ padding: "10px 14px" }}>{f.challan_number}</td>
+                    <td style={{ padding: "10px 14px" }}>
+                      <Pill label={f.is_verified ? "Verified" : "Pending"} variant={f.is_verified ? "success" : "warning"} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: colors.textMuted, fontSize: "13.5px" }}>No fee records found.</p>
+        )}
+      </ContentCard>
+    </PageShell>
   );
 }
 
-const cardStyle = {
-  border: "1px solid #ddd",
-  borderRadius: "8px",
-  padding: "16px",
-  marginBottom: "20px",
-};
-
-const thStyle = { background: "#f5f5f5", textAlign: "left", padding: "8px", border: "1px solid #ddd" };
-const tdStyle = { padding: "8px", border: "1px solid #ddd" };
+const sectionH = { margin: "0 0 12px", fontSize: "15px", fontWeight: "700", color: colors.textPrimary, fontFamily: fonts.heading };
 
 export default StudentTransport;

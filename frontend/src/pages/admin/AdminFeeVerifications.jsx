@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
+import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
+import { Pill } from "../../components/ui";
+import { btn, colors } from "../../theme";
 import { listFeeVerifications, verifyFee } from "../../services/transportService";
 
 function AdminFeeVerifications() {
@@ -9,22 +10,15 @@ function AdminFeeVerifications() {
   const [verifying, setVerifying] = useState(null);
 
   const fetchFees = () =>
-    listFeeVerifications()
-      .then((res) => setFees(res.data))
-      .catch(() => alert("Failed to load fee verifications."));
+    listFeeVerifications().then((res) => setFees(res.data)).catch(() => alert("Failed to load fee verifications."));
 
   useEffect(() => { fetchFees(); }, []);
 
   const handleVerify = async (id) => {
     setVerifying(id);
-    try {
-      await verifyFee(id);
-      fetchFees();
-    } catch (err) {
-      alert(err.response?.data?.detail || "Verification failed.");
-    } finally {
-      setVerifying(null);
-    }
+    try { await verifyFee(id); fetchFees(); }
+    catch (err) { alert(err.response?.data?.detail || "Verification failed."); }
+    finally { setVerifying(null); }
   };
 
   const columns = [
@@ -39,43 +33,26 @@ function AdminFeeVerifications() {
 
   const rows = fees.map((f) => ({
     ...f,
-    status: f.is_verified ? (
-      <span style={verifiedBadge}>Verified</span>
-    ) : (
-      <span style={pendingBadge}>Pending</span>
-    ),
+    status: <Pill label={f.is_verified ? "Verified" : "Pending"} variant={f.is_verified ? "success" : "warning"} />,
     action: f.is_verified ? (
-      <span style={{ fontSize: "13px", color: "#6b7280" }}>—</span>
+      <span style={{ color: colors.textMuted, fontSize: "13px" }}>—</span>
     ) : (
       <button
-        style={verifyBtnStyle}
+        style={{ ...btn.primary, padding: "6px 14px" }}
         disabled={verifying === f.id}
         onClick={() => handleVerify(f.id)}
       >
-        {verifying === f.id ? "Verifying..." : "Verify"}
+        {verifying === f.id ? "Verifying…" : "Verify"}
       </button>
     ),
   }));
 
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar role="staff" />
-      <div style={{ flex: 1 }}>
-        <Navbar title="Admin — Fee Verifications" />
-        <div style={{ padding: "24px", maxWidth: "1000px" }}>
-          <h2>Fee Verifications</h2>
-          <p style={{ color: "#6b7280", fontSize: "14px", marginBottom: "20px" }}>
-            Students who have paid their transport fee and are awaiting verification.
-          </p>
-          <Table columns={columns} rows={rows} />
-        </div>
-      </div>
-    </div>
+    <PageShell role="staff" title="Admin — Fee Verifications">
+      <PageTitle sub="Students who have paid their transport fee and are awaiting verification.">Fee Verifications</PageTitle>
+      <Table columns={columns} rows={rows} />
+    </PageShell>
   );
 }
-
-const verifiedBadge = { fontSize: "12px", fontWeight: "500", background: "#EAF3DE", color: "#3B6D11", padding: "2px 10px", borderRadius: "20px" };
-const pendingBadge  = { fontSize: "12px", fontWeight: "500", background: "#fff3cd", color: "#856404", padding: "2px 10px", borderRadius: "20px" };
-const verifyBtnStyle = { padding: "6px 12px", fontSize: "13px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer" };
 
 export default AdminFeeVerifications;

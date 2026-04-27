@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
+import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
 import { getStudents } from "../../services/transportService";
 
@@ -23,16 +22,10 @@ function StudentsPage() {
   ];
 
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar role="staff" />
-      <div style={{ flex: 1 }}>
-        <Navbar title="Admin — Students" />
-        <div style={{ padding: "24px" }}>
-          <h2>All Students</h2>
-          <Table columns={columns} rows={students} />
-        </div>
-      </div>
-    </div>
+    <PageShell role="staff" title="Admin — Students">
+      <PageTitle sub="Registered students in the transport system.">All Students</PageTitle>
+      <Table columns={columns} rows={students} />
+    </PageShell>
   );
 }
 

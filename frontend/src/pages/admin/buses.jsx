@@ -1,25 +1,21 @@
 import { useEffect, useState } from "react";
-import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
+import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
+import { ConfirmModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
+import { colors, fonts, radius } from "../../theme";
 import { getBuses, createBus, updateBus } from "../../services/transportService";
 
 function BusesPage() {
   const [buses, setBuses] = useState([]);
-  const [form, setForm] = useState({ bus_number: "", capacity: "", model: "", tracker_token: "" });  
+  const [form, setForm] = useState({ bus_number: "", capacity: "", model: "", tracker_token: "" });
   const [pendingToggle, setPendingToggle] = useState(null);
 
   const fetchBuses = () =>
-    getBuses()
-      .then((res) => setBuses(res.data))
-      .catch(() => alert("Failed to fetch buses."));
+    getBuses().then((res) => setBuses(res.data)).catch(() => alert("Failed to fetch buses."));
 
   const handleToggle = (id, currentValue) => {
-    if (currentValue) {
-      setPendingToggle({ id, currentValue });
-    } else {
-      doToggle(id, currentValue);
-    }
+    if (currentValue) setPendingToggle({ id, currentValue });
+    else doToggle(id, currentValue);
   };
 
   const doToggle = async (id, currentValue) => {
@@ -27,34 +23,22 @@ function BusesPage() {
       await updateBus(id, { is_active: !currentValue });
       fetchBuses();
     } catch (err) {
-      const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
-      alert(`Failed to update bus: ${detail}`);
+      alert(`Failed to update bus: ${JSON.stringify(err.response?.data || err.message)}`);
     }
-  };
-
-  const handleConfirm = () => {
-    doToggle(pendingToggle.id, pendingToggle.currentValue);
-    setPendingToggle(null);
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  useEffect(() => {
-    fetchBuses();
-  }, []);
+  useEffect(() => { fetchBuses(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.bus_number || !form.capacity) {
-      alert("Bus number and capacity are required");
-      return;
-    }
+    if (!form.bus_number || !form.capacity) { alert("Bus number and capacity are required"); return; }
     try {
       await createBus(form);
       setForm({ bus_number: "", capacity: "", model: "", tracker_token: "" });
       fetchBuses();
     } catch (err) {
-      const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
-      alert(`Failed to add bus: ${detail}`);
+      alert(`Failed to add bus: ${JSON.stringify(err.response?.data || err.message)}`);
     }
   };
 
@@ -63,131 +47,67 @@ function BusesPage() {
     { key: "total_seats", label: "Total Seats", render: (row) => row.total_seats ?? row.capacity },
     { key: "available_seats", label: "Available Seats", render: (row) => row.available_seats ?? row.capacity },
     { key: "model", label: "Model" },
-    { key: "tracker_token", label: "Tracker Token", render: (row) => row.tracker_token || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>Not set</span> },
     {
-      key: "is_active",
-      label: "Active",
-      render: (row) => (
-        <span
-          style={row.is_active ? badgeGreen : badgeGrey}
-          onClick={() => handleToggle(row.id, row.is_active)}
-          title="Click to toggle"
-        >
-          {row.is_active ? "Active" : "Inactive"}
-        </span>
-      ),
+      key: "tracker_token", label: "Tracker Token",
+      render: (row) => row.tracker_token || <span style={{ color: colors.textMuted, fontStyle: "italic" }}>Not set</span>,
+    },
+    {
+      key: "is_active", label: "Status",
+      render: (row) => <StatusBadge active={row.is_active} onClick={() => handleToggle(row.id, row.is_active)} />,
     },
   ];
 
+  const totalSeats = buses.reduce((s, b) => s + Number(b.total_seats ?? b.capacity ?? 0), 0);
+  const availSeats = buses.reduce((s, b) => s + Number(b.available_seats ?? b.capacity ?? 0), 0);
+
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar role="staff" />
-      <div style={{ flex: 1 }}>
-        <Navbar title="Admin — Buses" />
-        <div style={{ padding: "24px" }}>
-          {pendingToggle && (
-            <div style={modalOverlayStyle}>
-              <div style={modalBoxStyle}>
-                <h3 style={{ margin: "0 0 12px", color: "#c0392b" }}>⚠ Deactivate Bus?</h3>
-                <p style={{ margin: "0 0 20px", color: "#333" }}>
-                  Setting this bus to <strong>inactive</strong> will also automatically deactivate
-                  all corresponding assignments linked to this bus.
-                </p>
-                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                  <button onClick={() => setPendingToggle(null)} style={modalCancelBtnStyle}>Cancel</button>
-                  <button onClick={handleConfirm} style={modalConfirmBtnStyle}>Yes, Deactivate</button>
-                </div>
-              </div>
-            </div>
-          )}
-          <h2>Buses</h2>
-          <div style={seatStatsWrapStyle}>
-            <div style={seatStatCardStyle}>
-              <div style={seatStatLabelStyle}>Total Seats</div>
-              <div style={seatStatValueStyle}>
-                {buses.reduce((sum, bus) => sum + Number(bus.total_seats ?? bus.capacity ?? 0), 0)}
-              </div>
-            </div>
-            <div style={seatStatCardStyle}>
-              <div style={seatStatLabelStyle}>Available Seats</div>
-              <div style={seatStatValueStyle}>
-                {buses.reduce((sum, bus) => sum + Number(bus.available_seats ?? bus.capacity ?? 0), 0)}
-              </div>
-            </div>
-          </div>
-          <form onSubmit={handleSubmit} style={formStyle}>
-            <input
-              name="bus_number"
-              placeholder="Bus Number"
-              value={form.bus_number}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-            <input
-              name="capacity"
-              placeholder="Capacity"
-              type="number"
-              value={form.capacity}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-            <input
-              name="model"
-              placeholder="Model"
-              value={form.model}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-            <input
-              name="tracker_token"
-              placeholder="GPS Tracker Token (e.g. YgIw0Z)"
-              value={form.tracker_token}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-            <button type="submit" style={btnStyle}>Add Bus</button>
-          </form>
+    <PageShell role="staff" title="Admin — Buses">
+      {pendingToggle && (
+        <ConfirmModal
+          title="Deactivate Bus?"
+          message="Setting this bus to inactive will also automatically deactivate all corresponding assignments linked to it."
+          confirmLabel="Yes, Deactivate"
+          onConfirm={() => { doToggle(pendingToggle.id, pendingToggle.currentValue); setPendingToggle(null); }}
+          onCancel={() => setPendingToggle(null)}
+        />
+      )}
 
-          <div style={sectionWrapStyle}>
-            <h3 style={sectionHeadingStyle}>Active Buses</h3>
-            <div style={tableWrapStyle}>
-              {buses.filter(b => b.is_active).length === 0
-                ? <p style={emptyStyle}>No active buses.</p>
-                : <Table columns={columns} rows={buses.filter(b => b.is_active)} />}
-            </div>
-          </div>
+      <PageTitle sub="Manage fleet and seat availability.">Buses</PageTitle>
 
-          <div style={{ ...sectionWrapStyle, marginTop: "32px" }}>
-            <h3 style={sectionHeadingStyle}>Inactive Buses</h3>
-            <div style={tableWrapStyle}>
-              {buses.filter(b => !b.is_active).length === 0
-                ? <p style={emptyStyle}>No inactive buses.</p>
-                : <Table columns={columns} rows={buses.filter(b => !b.is_active)} />}
-            </div>
+      {/* Seat summary */}
+      <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+        {[["Total Seats", totalSeats], ["Available Seats", availSeats]].map(([label, val]) => (
+          <div key={label} style={{ background: "#fff", border: `1px solid ${colors.borderLight}`, borderRadius: radius.lg, padding: "14px 20px", minWidth: "150px", boxShadow: "0 1px 3px rgba(11,45,66,0.06)" }}>
+            <div style={{ fontSize: "11px", fontWeight: "600", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+            <div style={{ fontSize: "28px", fontWeight: "800", color: colors.textPrimary, fontFamily: fonts.heading, lineHeight: 1.2, marginTop: "4px" }}>{val}</div>
           </div>
-        </div>
+        ))}
       </div>
-    </div>
+
+      <FormCard title="Add New Bus" onSubmit={handleSubmit} submitLabel="Add Bus">
+        <Field label="Bus Number" required flex="1 1 140px">
+          <input name="bus_number" placeholder="e.g. KHI-001" value={form.bus_number} onChange={handleChange} style={inputStyle} />
+        </Field>
+        <Field label="Capacity" required flex="0 1 110px">
+          <input name="capacity" type="number" placeholder="50" value={form.capacity} onChange={handleChange} style={inputStyle} />
+        </Field>
+        <Field label="Model" flex="1 1 140px">
+          <input name="model" placeholder="e.g. Hino 700" value={form.model} onChange={handleChange} style={inputStyle} />
+        </Field>
+        <Field label="GPS Tracker Token" flex="1 1 160px">
+          <input name="tracker_token" placeholder="e.g. YgIw0Z" value={form.tracker_token} onChange={handleChange} style={inputStyle} />
+        </Field>
+      </FormCard>
+
+      <SectionBlock title="Active Buses">
+        <Table columns={columns} rows={buses.filter(b => b.is_active)} emptyMessage="No active buses." />
+      </SectionBlock>
+
+      <SectionBlock title="Inactive Buses">
+        <Table columns={columns} rows={buses.filter(b => !b.is_active)} emptyMessage="No inactive buses." />
+      </SectionBlock>
+    </PageShell>
   );
 }
-
-const formStyle = { marginBottom: "20px", display: "flex", gap: "10px", flexWrap: "wrap" };
-const inputStyle = { flex: "1 1 150px", padding: "8px" };
-const btnStyle = { padding: "8px 16px" };
-const sectionHeadingStyle = { margin: "0 0 10px", fontSize: "16px", color: "#333", whiteSpace: "nowrap" };
-const sectionWrapStyle = { display: "block" };
-const tableWrapStyle = { overflowX: "auto" };
-const emptyStyle = { color: "#888", fontStyle: "italic" };
-const badgeBase = { display: "inline-block", padding: "2px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: 600, cursor: "pointer", userSelect: "none" };
-const badgeGreen = { ...badgeBase, background: "#d4edda", color: "#155724" };
-const badgeGrey  = { ...badgeBase, background: "#e2e3e5", color: "#383d41" };
-const modalOverlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 };
-const modalBoxStyle = { background: "#fff", borderRadius: "8px", padding: "28px 32px", maxWidth: "420px", width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" };
-const modalCancelBtnStyle = { padding: "8px 18px", border: "1px solid #ccc", borderRadius: "4px", background: "#fff", cursor: "pointer" };
-const modalConfirmBtnStyle = { padding: "8px 18px", border: "none", borderRadius: "4px", background: "#c0392b", color: "#fff", cursor: "pointer", fontWeight: 600 };
-const seatStatsWrapStyle = { display: "flex", gap: "12px", marginBottom: "18px", flexWrap: "wrap" };
-const seatStatCardStyle = { background: "#f8f9fb", border: "1px solid #dfe3ea", borderRadius: "8px", padding: "10px 14px", minWidth: "160px" };
-const seatStatLabelStyle = { color: "#555", fontSize: "13px" };
-const seatStatValueStyle = { color: "#1a1a2e", fontSize: "22px", fontWeight: 700, lineHeight: 1.2 };
 
 export default BusesPage;
