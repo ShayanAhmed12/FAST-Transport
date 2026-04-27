@@ -1,35 +1,79 @@
+/* frontend/src/index.css */
+
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap');
+
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Global reset ────────────────────────────────────────────────────────── */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+html {
+  font-size: 16px;
+}
+
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
+  background: #f0f4f8;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #0f1f2d;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-.maplibregl-canvas {
+/* ── Scrollbar (webkit) ──────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Input & button base ─────────────────────────────────────────────────── */
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
+  border-color: #288dc4 !important;
+  box-shadow: 0 0 0 3px rgba(40, 141, 196, 0.12);
 }
 
-.maplibregl-map {
-  touch-action: pan-x pan-y;
-}
+/* ── Sidebar scrollbar hidden ────────────────────────────────────────────── */
+aside::-webkit-scrollbar { display: none; }
+aside { scrollbar-width: none; }
 
+/* ── Map overrides ───────────────────────────────────────────────────────── */
+.maplibregl-canvas { outline: none; }
+.maplibregl-map    { touch-action: pan-x pan-y; }
+
+/* ── Page content animation ──────────────────────────────────────────────── */
+.page-content {
+  animation: fadeIn 0.22s ease both;
+}

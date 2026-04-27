@@ -21,6 +21,7 @@ function Login() {
 
       const userRes = await getUser();
       localStorage.setItem("is_staff", userRes.data.is_staff ? "true" : "false");
+      localStorage.setItem("username", userRes.data.username);
       navigate(userRes.data.is_staff ? "/admin/dashboard" : "/student/dashboard");
     } catch {
       setError("Invalid username or password");
@@ -38,7 +39,6 @@ function Login() {
   swirl={0.3}
   speed={0.5}
 />
-
       <div style={styles.grain} />
 
       <div style={styles.container}>
