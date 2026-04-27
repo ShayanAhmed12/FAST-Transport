@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
 import { Pill } from "../../components/ui";
-import { btn, colors, radius } from "../../theme";
+import { btn, colors} from "../../theme";
 import { getComplaints, resolveComplaint } from "../../services/transportService";
 
 function AdminComplaintsPage() {

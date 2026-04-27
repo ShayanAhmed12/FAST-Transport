@@ -112,7 +112,7 @@ const VARIANT_STYLES = {
   danger: { accent: colors.dangerText,   bg: colors.dangerBg,  text: colors.dangerText  },
 };
 
-function StatCard({ label, value, Icon, path, variant }) {
+function StatCard({ label, value, path, variant }) {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(false);
   const v = VARIANT_STYLES[variant] || VARIANT_STYLES.blue;
@@ -221,7 +221,7 @@ function AdminDashboard() {
   );
 }
 
-function QuickAction({ label, path, Icon }) {
+function QuickAction({ label, path }) {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(false);
   return (

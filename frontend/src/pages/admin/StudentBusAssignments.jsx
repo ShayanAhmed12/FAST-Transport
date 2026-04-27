@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
 import { Spinner, SectionBlock } from "../../components/ui";
-import { btn, colors, radius, input as inputTheme } from "../../theme";
+import { btn, colors, input as inputTheme } from "../../theme";
 import { listCurrentSeatAllocations, reassignStudentSeat } from "../../services/transportService";
 
 function StudentBusAssignmentsPage() {

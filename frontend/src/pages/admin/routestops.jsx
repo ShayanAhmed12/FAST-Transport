@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
 import { FormCard, Field, inputStyle, selectStyle } from "../../components/ui";
-import { btn, colors, radius } from "../../theme";
+import { btn} from "../../theme";
 import { getRoutes, getStops, getRouteStops, createRouteStop, deleteRouteStop } from "../../services/transportService";
 
 const EMPTY_FORM = { route: "", stop: "", stop_order: 1, morning_eta: "", evening_eta: "" };

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
 import { ConfirmModal, Pill, FormCard, Field, inputStyle, selectStyle } from "../../components/ui";
-import { colors, radius } from "../../theme";
+import { colors} from "../../theme";
 import { getSemesters, createSemester, updateSemester } from "../../services/transportService";
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
