@@ -2,17 +2,24 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MeshGradient } from "@paper-design/shaders-react";
 import { getToken, getUser } from "../../services/transportService";
+import { validateField } from "../../utils/validation";
+import { ErrorText } from "../../components/ui";
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldError("");
+    const u = validateField(username, [{ check: "required", message: "Username is required" }]);
+    const p = validateField(password, [{ check: "required", message: "Password is required" }]);
+    if (u || p) { setFieldError(u || p); return; }
     setLoading(true);
     try {
       const tokenRes = await getToken({ username, password });
@@ -88,6 +95,7 @@ function Login() {
                 onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                 onBlur={(e) => Object.assign(e.target.style, styles.input)}
               />
+              {fieldError && <ErrorText>{fieldError}</ErrorText>}
             </div>
 
             <div style={styles.field}>

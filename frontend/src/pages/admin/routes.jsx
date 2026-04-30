@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
-import { ConfirmModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
-import { getRoutes, createRoute, updateRoute } from "../../services/transportService";
+import { ConfirmModal, FormModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
+import { btn } from "../../theme";
+import { getRoutes, createRoute, updateRoute, deleteRoute } from "../../services/transportService";
+
+const actionBtn = { ...btn.ghost, padding: "7px 12px", fontSize: "12px" };
 
 function RoutesPage() {
   const [routes, setRoutes] = useState([]);
   const [form, setForm] = useState({ name: "", description: "" });
   const [pendingToggle, setPendingToggle] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [editingRoute, setEditingRoute] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchRoutes = () =>
     getRoutes().then((res) => setRoutes(res.data)).catch(() => alert("Failed to fetch routes."));
@@ -29,6 +36,40 @@ function RoutesPage() {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   useEffect(() => { fetchRoutes(); }, []);
 
+  const handleEditOpen = (route) => {
+    setEditingRoute(route);
+    setEditForm({ name: route.name || "", description: route.description || "" });
+  };
+
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+
+  const handleDelete = (route) => setPendingDelete(route);
+
+  const confirmDelete = async () => {
+    try {
+      await deleteRoute(pendingDelete.id);
+      setPendingDelete(null);
+      fetchRoutes();
+    } catch (err) {
+      alert(`Failed to delete route: ${JSON.stringify(err.response?.data || err.message)}`);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.name) { alert("Route name is required"); return; }
+    setSavingEdit(true);
+    try {
+      await updateRoute(editingRoute.id, editForm);
+      setEditingRoute(null);
+      fetchRoutes();
+    } catch (err) {
+      alert(`Failed to update route: ${JSON.stringify(err.response?.data || err.message)}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name) { alert("Route name is required"); return; }
@@ -48,6 +89,16 @@ function RoutesPage() {
       key: "is_active", label: "Status",
       render: (row) => <StatusBadge active={row.is_active} onClick={() => handleToggle(row.id, row.is_active)} />,
     },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={() => handleEditOpen(row)} style={actionBtn}>Edit</button>
+          <button onClick={() => handleDelete(row)} style={{ ...btn.danger, padding: "7px 12px", fontSize: "12px" }}>Delete</button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -60,6 +111,35 @@ function RoutesPage() {
           onConfirm={() => { doToggle(pendingToggle.id, pendingToggle.currentValue); setPendingToggle(null); }}
           onCancel={() => setPendingToggle(null)}
         />
+      )}
+
+      {pendingDelete && (
+        <ConfirmModal
+          title="Delete Route?"
+          message={`Deleting route ${pendingDelete.name} will remove its route stops, active assignments, and any registrations or change requests that point to it. This cannot be undone.`}
+          confirmLabel="Yes, Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {editingRoute && (
+        <FormModal
+          title="Edit Route"
+          sub="Update the route details. Activation is managed separately."
+          submitLabel="Save Changes"
+          loading={savingEdit}
+          onClose={() => setEditingRoute(null)}
+          onSubmit={handleEditSubmit}
+          width="660px"
+        >
+          <Field label="Route Name" required flex="1 1 180px">
+            <input name="name" placeholder="e.g. Gulshan Route" value={editForm.name} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="Description" flex="2 1 300px">
+            <input name="description" placeholder="Brief description" value={editForm.description} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+        </FormModal>
       )}
 
       <PageTitle sub="Manage transport routes.">Routes</PageTitle>

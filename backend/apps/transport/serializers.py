@@ -447,4 +447,11 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already exists.")
 
         return value
+    
+    def validate_username(self, value):
+        value = value.strip()
+        from django.contrib.auth.models import User
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Username already exists.")
+        return value
             

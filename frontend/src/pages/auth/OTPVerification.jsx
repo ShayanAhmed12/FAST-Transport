@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { MeshGradient } from "@paper-design/shaders-react";
 import api from "../../services/api";
 import { getToken, getUser } from "../../services/transportService";
+import { validateField } from "../../utils/validation";
+import { ErrorText } from "../../components/ui";
 
 function OTPVerification() {
   const location = useLocation();
@@ -16,9 +18,12 @@ function OTPVerification() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [fieldError, setFieldError] = useState("");
 
   const handleVerify = async () => {
-    if (!otp) { setError("Please enter your OTP"); return; }
+    const v = validateField(otp, [{ check: "required", message: "Please enter your OTP" }, { check: "otp6", message: "Enter a 6-digit numeric code" }]);
+    if (v) { setFieldError(v); return; }
+    setFieldError("");
     setLoading(true);
     setError("");
     setSuccess("");
@@ -131,6 +136,7 @@ function OTPVerification() {
                 onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                 onBlur={(e) => Object.assign(e.target.style, styles.input)}
               />
+                  {fieldError && <ErrorText>{fieldError}</ErrorText>}
             </div>
 
             <button

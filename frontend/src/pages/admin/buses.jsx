@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
-import { ConfirmModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
-import { colors, fonts, radius } from "../../theme";
-import { getBuses, createBus, updateBus } from "../../services/transportService";
+import { ConfirmModal, FormModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
+import { colors, fonts, radius, btn } from "../../theme";
+import { getBuses, createBus, updateBus, deleteBus } from "../../services/transportService";
+
+const actionBtn = { ...btn.ghost, padding: "7px 12px", fontSize: "12px" };
 
 function BusesPage() {
   const [buses, setBuses] = useState([]);
   const [form, setForm] = useState({ bus_number: "", capacity: "", model: "", tracker_token: "" });
   const [pendingToggle, setPendingToggle] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [editingBus, setEditingBus] = useState(null);
+  const [editForm, setEditForm] = useState({ bus_number: "", capacity: "", model: "", tracker_token: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchBuses = () =>
     getBuses().then((res) => setBuses(res.data)).catch(() => alert("Failed to fetch buses."));
@@ -29,6 +35,50 @@ function BusesPage() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   useEffect(() => { fetchBuses(); }, []);
+
+  const handleEditOpen = (bus) => {
+    setEditingBus(bus);
+    setEditForm({
+      bus_number: bus.bus_number || "",
+      capacity: bus.capacity ?? "",
+      model: bus.model || "",
+      tracker_token: bus.tracker_token || "",
+    });
+  };
+
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+
+  const handleDelete = (bus) => setPendingDelete(bus);
+
+  const confirmDelete = async () => {
+    try {
+      await deleteBus(pendingDelete.id);
+      setPendingDelete(null);
+      fetchBuses();
+    } catch (err) {
+      alert(`Failed to delete bus: ${JSON.stringify(err.response?.data || err.message)}`);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.bus_number || !editForm.capacity) { alert("Bus number and capacity are required"); return; }
+    setSavingEdit(true);
+    try {
+      await updateBus(editingBus.id, {
+        bus_number: editForm.bus_number,
+        capacity: Number(editForm.capacity),
+        model: editForm.model,
+        tracker_token: editForm.tracker_token,
+      });
+      setEditingBus(null);
+      fetchBuses();
+    } catch (err) {
+      alert(`Failed to update bus: ${JSON.stringify(err.response?.data || err.message)}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,6 +105,16 @@ function BusesPage() {
       key: "is_active", label: "Status",
       render: (row) => <StatusBadge active={row.is_active} onClick={() => handleToggle(row.id, row.is_active)} />,
     },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={() => handleEditOpen(row)} style={actionBtn}>Edit</button>
+          <button onClick={() => handleDelete(row)} style={{ ...btn.danger, padding: "7px 12px", fontSize: "12px" }}>Delete</button>
+        </div>
+      ),
+    },
   ];
 
   const totalSeats = buses.reduce((s, b) => s + Number(b.total_seats ?? b.capacity ?? 0), 0);
@@ -70,6 +130,41 @@ function BusesPage() {
           onConfirm={() => { doToggle(pendingToggle.id, pendingToggle.currentValue); setPendingToggle(null); }}
           onCancel={() => setPendingToggle(null)}
         />
+      )}
+
+      {pendingDelete && (
+        <ConfirmModal
+          title="Delete Bus?"
+          message={`Deleting bus ${pendingDelete.bus_number} will also remove related route assignments and seat allocations. This cannot be undone.`}
+          confirmLabel="Yes, Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {editingBus && (
+        <FormModal
+          title="Edit Bus"
+          sub="Update the bus details. Status is managed separately."
+          submitLabel="Save Changes"
+          loading={savingEdit}
+          onClose={() => setEditingBus(null)}
+          onSubmit={handleEditSubmit}
+          width="620px"
+        >
+          <Field label="Bus Number" required flex="1 1 160px">
+            <input name="bus_number" placeholder="e.g. KHI-001" value={editForm.bus_number} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="Capacity" required flex="0 1 120px">
+            <input name="capacity" type="number" placeholder="50" value={editForm.capacity} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="Model" flex="1 1 160px">
+            <input name="model" placeholder="e.g. Hino 700" value={editForm.model} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="GPS Tracker Token" flex="1 1 180px">
+            <input name="tracker_token" placeholder="e.g. YgIw0Z" value={editForm.tracker_token} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+        </FormModal>
       )}
 
       <PageTitle sub="Manage fleet and seat availability.">Buses</PageTitle>

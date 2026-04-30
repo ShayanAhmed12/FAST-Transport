@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import PageShell, { PageTitle, ContentCard } from "../../components/PageShell";
-import { Spinner, DetailRow, Banner } from "../../components/ui";
+import { Spinner, DetailRow, Banner, ValidatedInput } from "../../components/ui";
 import { btn, colors, radius } from "../../theme";
 import {
   getChallan, createPaymentIntent, confirmStripePayment, verifyPaymentOtp,
@@ -68,23 +68,25 @@ function StripeCardForm({ amount, onSuccess, onCancel }) {
       </div>
       <div style={{ fontSize: "22px", fontWeight: 700, color: colors.textPrimary, marginBottom: "20px" }}>PKR {amount}</div>
       {error && <Banner variant="danger" style={{ marginBottom: "12px" }}>{error}</Banner>}
-      {[
-        { label: "Card Number", val: card, set: setCard, ph: "4242 4242 4242 4242", max: 19, full: true },
-      ].map(({ label, val, set, ph, max, full }) => (
-        <div key={label} style={{ marginBottom: "14px" }}>
-          <label style={stripeLabelSt}>{label}</label>
-          <input value={val} onChange={e => set(e.target.value)} placeholder={ph} maxLength={max}
-            style={{ ...stripeInputSt, width: full ? "100%" : "auto" }} />
-        </div>
-      ))}
+      <div style={{ marginBottom: "14px" }}>
+        <label style={stripeLabelSt}>Card Number</label>
+        <ValidatedInput
+          value={card}
+          onChange={(e) => setCard(e.target.value)}
+          placeholder="4242 4242 4242 4242"
+          maxLength={19}
+          style={{ ...stripeInputSt, width: "100%" }}
+          validators={[{ check: "required", message: "Card number required" }, { check: "minLength", arg: 16, message: "Enter a valid card number" }]}
+        />
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         <div>
           <label style={stripeLabelSt}>Expiry</label>
-          <input value={expiry} onChange={e => setExpiry(e.target.value)} placeholder="MM/YY" maxLength={5} style={stripeInputSt} />
+          <ValidatedInput value={expiry} onChange={e => setExpiry(e.target.value)} placeholder="MM/YY" maxLength={5} style={stripeInputSt} validators={[{ check: "required", message: "Expiry required" }]} />
         </div>
         <div>
           <label style={stripeLabelSt}>CVC</label>
-          <input value={cvc} onChange={e => setCvc(e.target.value)} placeholder="123" maxLength={4} type="password" style={stripeInputSt} />
+          <ValidatedInput value={cvc} onChange={e => setCvc(e.target.value)} placeholder="123" maxLength={4} type="password" style={stripeInputSt} validators={[{ check: "required", message: "CVC required" }, { check: "minLength", arg: 3, message: "Enter a valid CVC" }]} />
         </div>
       </div>
       <div style={{ display: "flex", gap: "10px" }}>

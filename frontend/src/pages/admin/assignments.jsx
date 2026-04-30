@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
-import { StatusBadge, FormCard, Field, SectionBlock, selectStyle } from "../../components/ui";
+import { ConfirmModal, FormModal, StatusBadge, FormCard, Field, SectionBlock, selectStyle } from "../../components/ui";
+import { btn } from "../../theme";
 import {
-  getAssignments, createAssignment, updateAssignment,
+  getAssignments, createAssignment, updateAssignment, deleteAssignment,
   getRoutes, getBuses, getDrivers, getSemesters,
 } from "../../services/transportService";
+
+const actionBtn = { ...btn.ghost, padding: "7px 12px", fontSize: "12px" };
+
+const getOptionsWithCurrent = (options, currentItem, labelGetter) => {
+  if (!currentItem) return options;
+  return options.some((option) => option.id === currentItem.id)
+    ? options
+    : [...options, currentItem];
+};
 
 function AssignmentsPage() {
   const [assignments, setAssignments] = useState([]);
@@ -14,6 +24,10 @@ function AssignmentsPage() {
   const [drivers, setDrivers] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [form, setForm] = useState({ route_id: "", bus_id: "", driver_id: "", semester_id: "" });
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [editForm, setEditForm] = useState({ route_id: "", bus_id: "", driver_id: "", semester_id: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchAssignments = () =>
     getAssignments().then((res) => setAssignments(res.data)).catch(() => alert("Failed to fetch assignments."));
@@ -28,6 +42,47 @@ function AssignmentsPage() {
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleEditOpen = (assignment) => {
+    setEditingAssignment(assignment);
+    setEditForm({
+      route_id: assignment.route?.id ?? assignment.route_id ?? "",
+      bus_id: assignment.bus?.id ?? assignment.bus_id ?? "",
+      driver_id: assignment.driver?.id ?? assignment.driver_id ?? "",
+      semester_id: assignment.semester?.id ?? assignment.semester_id ?? "",
+    });
+  };
+
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+
+  const handleDelete = (assignment) => setPendingDelete(assignment);
+
+  const confirmDelete = async () => {
+    try {
+      await deleteAssignment(pendingDelete.id);
+      setPendingDelete(null);
+      fetchAssignments();
+    } catch (err) {
+      alert(`Failed to delete assignment: ${JSON.stringify(err.response?.data || err.message)}`);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.route_id || !editForm.bus_id || !editForm.driver_id || !editForm.semester_id) {
+      alert("All fields are required."); return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateAssignment(editingAssignment.id, editForm);
+      setEditingAssignment(null);
+      fetchAssignments();
+    } catch (err) {
+      alert(`Failed to update assignment: ${JSON.stringify(err.response?.data || err.message)}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   useEffect(() => {
     fetchAssignments();
@@ -59,16 +114,77 @@ function AssignmentsPage() {
       key: "is_active", label: "Status",
       render: (row) => <StatusBadge active={row.is_active} onClick={() => handleToggle(row.id, row.is_active)} />,
     },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={() => handleEditOpen(row)} style={actionBtn}>Edit</button>
+          <button onClick={() => handleDelete(row)} style={{ ...btn.danger, padding: "7px 12px", fontSize: "12px" }}>Delete</button>
+        </div>
+      ),
+    },
   ];
 
   const activeRoutes     = routes.filter(r => r.is_active);
   const activeBuses      = buses.filter(b => b.is_active);
   const availDrivers     = drivers.filter(d => d.is_available);
   const activeSemesters  = semesters.filter(s => s.is_active);
+  const editRoutes = getOptionsWithCurrent(activeRoutes, editingAssignment?.route, (route) => route.name);
+  const editBuses = getOptionsWithCurrent(activeBuses, editingAssignment?.bus, (bus) => bus.bus_number);
+  const editDrivers = getOptionsWithCurrent(availDrivers, editingAssignment?.driver, (driver) => driver.name);
+  const editSemesters = getOptionsWithCurrent(activeSemesters, editingAssignment?.semester, (semester) => semester.name);
 
   return (
     <PageShell role="staff" title="Admin — Assignments">
       <PageTitle sub="Assign buses and drivers to routes for each semester.">Route Assignments</PageTitle>
+
+      {pendingDelete && (
+        <ConfirmModal
+          title="Delete Assignment?"
+          message={`Deleting this assignment will remove any allocated seats and waitlist effects tied to it. This cannot be undone.`}
+          confirmLabel="Yes, Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {editingAssignment && (
+        <FormModal
+          title="Edit Assignment"
+          sub="Update the route, bus, driver, or semester for this assignment."
+          submitLabel="Save Changes"
+          loading={savingEdit}
+          onClose={() => setEditingAssignment(null)}
+          onSubmit={handleEditSubmit}
+          width="760px"
+        >
+          <Field label="Route" required flex="1 1 150px">
+            <select name="route_id" value={editForm.route_id} onChange={handleEditChange} style={selectStyle}>
+              <option value="">Select Route</option>
+              {editRoutes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Bus" required flex="1 1 150px">
+            <select name="bus_id" value={editForm.bus_id} onChange={handleEditChange} style={selectStyle}>
+              <option value="">Select Bus</option>
+              {editBuses.map(b => <option key={b.id} value={b.id}>{b.bus_number}</option>)}
+            </select>
+          </Field>
+          <Field label="Driver" required flex="1 1 150px">
+            <select name="driver_id" value={editForm.driver_id} onChange={handleEditChange} style={selectStyle}>
+              <option value="">Select Driver</option>
+              {editDrivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Semester" required flex="1 1 150px">
+            <select name="semester_id" value={editForm.semester_id} onChange={handleEditChange} style={selectStyle}>
+              <option value="">Select Semester</option>
+              {editSemesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </Field>
+        </FormModal>
+      )}
 
       <FormCard title="Create Assignment" onSubmit={handleSubmit} submitLabel="Add Assignment">
         <Field label="Route" required flex="1 1 140px">

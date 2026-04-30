@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
-import { ConfirmModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
-import { getDrivers, createDriver, updateDriver } from "../../services/transportService";
+import { ConfirmModal, FormModal, StatusBadge, FormCard, Field, SectionBlock, inputStyle } from "../../components/ui";
+import { btn } from "../../theme";
+import { getDrivers, createDriver, updateDriver, deleteDriver } from "../../services/transportService";
+
+const actionBtn = { ...btn.ghost, padding: "7px 12px", fontSize: "12px" };
 
 function DriversPage() {
   const [drivers, setDrivers] = useState([]);
   const [form, setForm] = useState({ name: "", cnic: "", license_no: "", phone: "", address: "" });
   const [pendingToggle, setPendingToggle] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [editingDriver, setEditingDriver] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", cnic: "", license_no: "", phone: "", address: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchDrivers = () =>
     getDrivers().then((res) => setDrivers(res.data)).catch(() => alert("Failed to fetch drivers."));
@@ -29,6 +36,44 @@ function DriversPage() {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   useEffect(() => { fetchDrivers(); }, []);
 
+  const handleEditOpen = (driver) => {
+    setEditingDriver(driver);
+    setEditForm({
+      name: driver.name || "",
+      cnic: driver.cnic || "",
+      license_no: driver.license_no || "",
+      phone: driver.phone || "",
+      address: driver.address || "",
+    });
+  };
+
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  const handleDelete = (driver) => setPendingDelete(driver);
+
+  const confirmDelete = async () => {
+    try {
+      await deleteDriver(pendingDelete.id);
+      setPendingDelete(null);
+      fetchDrivers();
+    } catch (err) {
+      alert(`Failed to delete driver: ${JSON.stringify(err.response?.data || err.message)}`);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.name || !editForm.cnic) { alert("Name and CNIC are required"); return; }
+    setSavingEdit(true);
+    try {
+      await updateDriver(editingDriver.id, editForm);
+      setEditingDriver(null);
+      fetchDrivers();
+    } catch (err) {
+      alert(`Failed to update driver: ${JSON.stringify(err.response?.data || err.message)}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.cnic) { alert("Name and CNIC are required"); return; }
@@ -58,6 +103,16 @@ function DriversPage() {
         />
       ),
     },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={() => handleEditOpen(row)} style={actionBtn}>Edit</button>
+          <button onClick={() => handleDelete(row)} style={{ ...btn.danger, padding: "7px 12px", fontSize: "12px" }}>Delete</button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -70,6 +125,44 @@ function DriversPage() {
           onConfirm={() => { doToggle(pendingToggle.id, pendingToggle.currentValue); setPendingToggle(null); }}
           onCancel={() => setPendingToggle(null)}
         />
+      )}
+
+      {pendingDelete && (
+        <ConfirmModal
+          title="Delete Driver?"
+          message={`Deleting driver ${pendingDelete.name} will remove any route assignments that reference this driver. This cannot be undone.`}
+          confirmLabel="Yes, Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {editingDriver && (
+        <FormModal
+          title="Edit Driver"
+          sub="Update the driver details. Availability is managed separately."
+          submitLabel="Save Changes"
+          loading={savingEdit}
+          onClose={() => setEditingDriver(null)}
+          onSubmit={handleEditSubmit}
+          width="700px"
+        >
+          <Field label="Full Name" required flex="1 1 180px">
+            <input name="name" placeholder="e.g. Ahmed Khan" value={editForm.name} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="CNIC" required flex="1 1 160px">
+            <input name="cnic" placeholder="42101-1234567-1" value={editForm.cnic} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="License No" flex="1 1 140px">
+            <input name="license_no" placeholder="License number" value={editForm.license_no} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="Phone" flex="1 1 140px">
+            <input name="phone" placeholder="+92 300 0000000" value={editForm.phone} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="Address" flex="2 1 240px">
+            <input name="address" placeholder="Home address" value={editForm.address} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+        </FormModal>
       )}
 
       <PageTitle sub="Manage bus drivers and their availability.">Drivers</PageTitle>

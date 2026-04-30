@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageShell, { PageTitle, ContentCard } from "../../components/PageShell";
-import { Spinner, Banner, Field, selectStyle } from "../../components/ui";
+import { Spinner, Banner, Field, selectStyle, ErrorText } from "../../components/ui";
 import { btn, colors } from "../../theme";
 import { getStops, getSemesters, createRegistration, getRegistration, getChallan } from "../../services/transportService";
 
@@ -78,18 +78,18 @@ function TransportRegistration() {
       {!registration && (
         <ContentCard>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <Field label="Semester" required>
-              <select value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)} style={selectStyle}>
-                <option value="">Select Semester</option>
-                {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Pickup Stop" required>
-              <select value={selectedStop} onChange={(e) => setSelectedStop(e.target.value)} style={selectStyle}>
-                <option value="">Select Stop</option>
-                {stops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </Field>
+              <Field label="Semester" required validators={[{ check: "required", message: "Please select a semester" }] }>
+                <select value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)} style={selectStyle}>
+                  <option value="">Select Semester</option>
+                  {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Pickup Stop" required validators={[{ check: "required", message: "Please select a pickup stop" }] }>
+                <select value={selectedStop} onChange={(e) => setSelectedStop(e.target.value)} style={selectStyle}>
+                  <option value="">Select Stop</option>
+                  {stops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </Field>
             <button type="submit" disabled={loading} style={{ ...btn.primary, alignSelf: "flex-start", minWidth: "180px", opacity: loading ? 0.6 : 1 }}>
               {loading ? "Submitting…" : "Submit Registration"}
             </button>

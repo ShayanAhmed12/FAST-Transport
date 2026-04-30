@@ -108,10 +108,11 @@ export default function StudentRouteChange() {
                 <div style={fieldStyle}>
                   <label style={labelStyle}>New Stop</label>
                   <select
-                    style={selectStyle}
-                    value={form.requested_stop_id}
-                    onChange={(e) => setForm({ requested_stop_id: e.target.value })}
-                  >
+                        style={selectStyle}
+                        value={form.requested_stop_id}
+                        onChange={(e) => setForm({ requested_stop_id: e.target.value })}
+                        onBlur={() => { if (!form.requested_stop_id) setError("Please select a new stop."); else setError(""); }}
+                      >
                     <option value="">— Select your new stop —</option>
                     {allStops
                       .filter((s) => s.name !== currentStop)  // exclude current stop

@@ -1,4 +1,6 @@
+import React from "react";
 import { colors, fonts, radius, btn, input } from "../theme";
+import { validateField } from "../utils/validation";
 
 // ── Confirm Modal ─────────────────────────────────────────────────────────────
 export function ConfirmModal({ title, message, onConfirm, onCancel, confirmLabel = "Confirm", danger = true }) {
@@ -24,6 +26,37 @@ export function ConfirmModal({ title, message, onConfirm, onCancel, confirmLabel
   );
 }
 
+// ── Form Modal ────────────────────────────────────────────────────────────────
+export function FormModal({ title, sub, children, onSubmit, onClose, submitLabel = "Save", loading = false, width = "560px" }) {
+  return (
+    <div style={modalStyles.overlay} onMouseDown={onClose}>
+      <div style={{ ...modalStyles.box, maxWidth: width }} onMouseDown={(e) => e.stopPropagation()}>
+        <div style={modalStyles.header}>
+          <div>
+            <h3 style={modalStyles.title}>{title}</h3>
+            {sub && <p style={modalStyles.message}>{sub}</p>}
+          </div>
+          <button type="button" onClick={onClose} style={modalStyles.closeBtn} aria-label="Close dialog">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18" />
+              <path d="M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form onSubmit={onSubmit} style={modalStyles.form}>
+          <div style={modalStyles.formBody}>{children}</div>
+          <div style={modalStyles.formActions}>
+            <button type="button" onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
+            <button type="submit" disabled={loading} style={loading ? modalStyles.disabledPrimaryBtn : modalStyles.confirmBtn}>
+              {loading ? "Saving…" : submitLabel}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 const modalStyles = {
   overlay: {
     position: "fixed", inset: 0,
@@ -37,6 +70,14 @@ const modalStyles = {
     boxShadow: "0 24px 64px rgba(11,45,66,0.22)",
     textAlign: "center",
   },
+  header: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: "16px",
+    marginBottom: "18px",
+    textAlign: "left",
+  },
   iconWrap: {
     width: "48px", height: "48px", borderRadius: "50%",
     background: colors.dangerBg, display: "flex",
@@ -49,6 +90,21 @@ const modalStyles = {
   cancelBtn: { ...btn.ghost, minWidth: "100px" },
   dangerBtn: { ...btn.danger, minWidth: "120px", fontWeight: "700" },
   confirmBtn: { ...btn.primary, minWidth: "120px" },
+  disabledPrimaryBtn: { ...btn.primary, minWidth: "120px", opacity: 0.65, cursor: "progress" },
+  closeBtn: {
+    ...btn.ghost,
+    width: "38px",
+    height: "38px",
+    borderRadius: radius.pill,
+    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: "0 0 auto",
+  },
+  form: { display: "flex", flexDirection: "column", gap: "18px" },
+  formBody: { display: "flex", flexWrap: "wrap", gap: "12px" },
+  formActions: { display: "flex", gap: "10px", justifyContent: "flex-end" },
 };
 
 // ── Status Badge (clickable toggle) ──────────────────────────────────────────
@@ -143,7 +199,23 @@ const formCardStyles = {
 };
 
 // ── Labelled field wrapper ────────────────────────────────────────────────────
-export function Field({ label, required, children, flex = "1 1 160px" }) {
+export function Field({ label, required, children, flex = "1 1 160px", validators = [] }) {
+  const [error, setError] = React.useState(null);
+
+  // If validators are provided and there's a single child element, clone it
+  const child = React.Children.count(children) === 1 ? React.Children.only(children) : null;
+
+  const handleBlur = (e) => {
+    if (!validators || validators.length === 0) return;
+    const v = validateField(e.target.value, validators);
+    setError(v);
+    if (child?.props?.onBlur) child.props.onBlur(e);
+  };
+
+  const renderedChild = child
+    ? React.cloneElement(child, { onBlur: handleBlur, style: child.props.style })
+    : children;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "5px", flex }}>
       {label && (
@@ -151,7 +223,8 @@ export function Field({ label, required, children, flex = "1 1 160px" }) {
           {label}{required && <span style={{ color: colors.dangerText, marginLeft: 2 }}>*</span>}
         </label>
       )}
-      {children}
+      {renderedChild}
+      {error && <div style={{ color: colors.dangerText, fontSize: "12px", marginTop: "6px" }}>{error}</div>}
     </div>
   );
 }
@@ -214,6 +287,40 @@ export function DetailRow({ label, value }) {
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${colors.borderLight}` }}>
       <span style={{ fontSize: "12px", fontWeight: "600", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
       <span style={{ fontSize: "13.5px", fontWeight: "500", color: colors.textPrimary, textAlign: "right", maxWidth: "60%" }}>{value ?? "—"}</span>
+    </div>
+  );
+}
+
+export function ErrorText({ children }) {
+  return (
+    <div style={{ color: colors.dangerText, fontSize: "12px", marginTop: "6px" }}>{children}</div>
+  );
+}
+
+// Validated input: declarative validators prop -> shows inline error
+export function ValidatedInput({ as = "input", validators = [], value, onChange, placeholder, type = "text", name, rows = 3, style, ...rest }) {
+  const [error, setError] = React.useState(null);
+  const handleBlur = (e) => {
+    const v = validateField(e.target.value, validators);
+    setError(v);
+  };
+  const common = {
+    name,
+    value,
+    onChange,
+    placeholder,
+    onBlur: handleBlur,
+    style,
+    ...rest,
+  };
+  return (
+    <div>
+      {as === "textarea" ? (
+        <textarea rows={rows} {...common} />
+      ) : (
+        <input type={type} {...common} />
+      )}
+      {error && <div style={{ color: colors.dangerText, fontSize: "12px", marginTop: "6px" }}>{error}</div>}
     </div>
   );
 }

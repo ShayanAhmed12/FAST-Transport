@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MeshGradient } from "@paper-design/shaders-react";
 import { signup } from "../../services/transportService";
+import { validateField } from "../../utils/validation";
+import { ErrorText } from "../../components/ui";
 
 function Signup() {
   const [step, setStep] = useState(1);
@@ -17,6 +19,7 @@ function Signup() {
   });
 
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -26,10 +29,18 @@ function Signup() {
 
   const handleNext = (e) => {
     e.preventDefault();
-    if (!formData.username || !formData.email || !formData.password) {
-      setError("Please fill in all required fields.");
+    const nextErrors = {};
+    const u = validateField(formData.username, [{ check: "required", message: "Username is required" }]);
+    if (u) nextErrors.username = u;
+    const em = validateField(formData.email, [{ check: "required", message: "Email is required" }, { check: "email", message: "Enter a valid email" }]);
+    if (em) nextErrors.email = em;
+    const p = validateField(formData.password, [{ check: "required", message: "Password is required" }, { check: "minLength", arg: 8, message: "Password must be at least 8 characters" }]);
+    if (p) nextErrors.password = p;
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
       return;
     }
+    setErrors({});
     setError("");
     setStep(2);
   };
@@ -38,7 +49,16 @@ function Signup() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setErrors({});
     try {
+      // final validation for step 2 fields
+      const step2Errors = {};
+      const r = validateField(formData.roll_number, [{ check: "required", message: "Roll number is required" }, { check: "roll", message: "Enter a valid roll number" }]);
+      if (r) step2Errors.roll_number = r;
+      const ph = formData.phone ? validateField(formData.phone, [{ check: "phone", message: "Enter a valid phone number" }]) : null;
+      if (ph) step2Errors.phone = ph;
+      if (Object.keys(step2Errors).length) { setErrors(step2Errors); setLoading(false); return; }
+
       await signup(formData);
       localStorage.setItem("otp_email", formData.email);
       navigate("/verify-otp", {
@@ -130,6 +150,7 @@ function Signup() {
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                   onBlur={(e) => Object.assign(e.target.style, styles.input)}
                 />
+                {errors.username && <ErrorText>{errors.username}</ErrorText>}
               </div>
 
               <div style={styles.field}>
@@ -145,6 +166,7 @@ function Signup() {
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                   onBlur={(e) => Object.assign(e.target.style, styles.input)}
                 />
+                {errors.email && <ErrorText>{errors.email}</ErrorText>}
               </div>
 
               <div style={styles.field}>
@@ -160,6 +182,7 @@ function Signup() {
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                   onBlur={(e) => Object.assign(e.target.style, styles.input)}
                 />
+                {errors.password && <ErrorText>{errors.password}</ErrorText>}
               </div>
 
               <button
@@ -247,6 +270,8 @@ function Signup() {
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                   onBlur={(e) => Object.assign(e.target.style, styles.input)}
                 />
+                {errors.roll_number && <ErrorText>{errors.roll_number}</ErrorText>}
+                {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
               </div>
 
               <div style={styles.btnRow}>

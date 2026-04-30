@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
-import { FormCard, Field, inputStyle, selectStyle } from "../../components/ui";
+import { FormCard, Field, inputStyle, selectStyle, ValidatedInput } from "../../components/ui";
+import { validateField } from "../../utils/validation";
 import { getComplaints, createComplaint } from "../../services/transportService";
 
 function StudentComplaints() {
@@ -38,16 +39,25 @@ function StudentComplaints() {
 
       <FormCard title="Submit New Complaint" onSubmit={handleSubmit} submitLabel="Submit">
         <Field label="Subject" required flex="1 1 200px">
-          <input name="subject" placeholder="Brief subject" value={form.subject} onChange={handleChange} style={inputStyle} />
+          <ValidatedInput
+            name="subject"
+            placeholder="Brief subject"
+            value={form.subject}
+            onChange={handleChange}
+            style={inputStyle}
+            validators={[{ check: "required", message: "Subject is required" }, { check: "minLength", arg: 3, message: "Subject too short" }]}
+          />
         </Field>
         <Field label="Description" required flex="2 1 300px">
-          <textarea
+          <ValidatedInput
+            as="textarea"
             name="description"
             placeholder="Describe your complaint in detail..."
             value={form.description}
             onChange={handleChange}
             rows={3}
             style={{ ...inputStyle, resize: "vertical" }}
+            validators={[{ check: "required", message: "Description is required" }, { check: "minLength", arg: 10, message: "Please provide more details" }]}
           />
         </Field>
         <Field label="Priority" flex="0 1 120px">

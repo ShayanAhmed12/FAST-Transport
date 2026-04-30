@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import PageShell, { PageTitle } from "../../components/PageShell";
 import Table from "../../components/Table";
-import { ConfirmModal, Pill, FormCard, Field, inputStyle, selectStyle } from "../../components/ui";
-import { colors} from "../../theme";
-import { getSemesters, createSemester, updateSemester } from "../../services/transportService";
+import { ConfirmModal, FormModal, Pill, FormCard, Field, inputStyle, selectStyle } from "../../components/ui";
+import { colors, btn } from "../../theme";
+import { getSemesters, createSemester, updateSemester, deleteSemester } from "../../services/transportService";
+
+const actionBtn = { ...btn.ghost, padding: "7px 12px", fontSize: "12px" };
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 function Toggle({ name, checked, onChange, label }) {
@@ -33,6 +35,10 @@ function SemestersPage() {
   const [semesters, setSemesters] = useState([]);
   const [form, setForm] = useState({ year: "", term: "", start_date: "", end_date: "", is_active: false, registration_open: false });
   const [pendingToggle, setPendingToggle] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [editingSemester, setEditingSemester] = useState(null);
+  const [editForm, setEditForm] = useState({ year: "", term: "", start_date: "", end_date: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchSemesters = () =>
     getSemesters().then((res) => setSemesters(res.data)).catch(() => alert("Failed to fetch semesters."));
@@ -52,6 +58,56 @@ function SemestersPage() {
   };
 
   useEffect(() => { fetchSemesters(); }, []);
+
+  const handleDelete = (semester) => setPendingDelete(semester);
+
+  const confirmDelete = async () => {
+    try {
+      await deleteSemester(pendingDelete.id);
+      setPendingDelete(null);
+      fetchSemesters();
+    } catch (err) {
+      alert(`Failed to delete semester: ${JSON.stringify(err.response?.data || err.message)}`);
+    }
+  };
+
+  const handleEditOpen = (semester) => {
+    setEditingSemester(semester);
+    setEditForm({
+      year: semester.year ?? "",
+      term: semester.term || "",
+      start_date: semester.start_date || "",
+      end_date: semester.end_date || "",
+    });
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm({ ...editForm, [name]: value });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.year || !editForm.term || !editForm.start_date || !editForm.end_date) {
+      alert("All fields are required."); return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateSemester(editingSemester.id, {
+        year: Number(editForm.year),
+        term: editForm.term,
+        start_date: editForm.start_date,
+        end_date: editForm.end_date,
+        name: `${editForm.term} ${editForm.year}`,
+      });
+      setEditingSemester(null);
+      fetchSemesters();
+    } catch (err) {
+      alert(`Failed to update semester: ${JSON.stringify(err.response?.data || err.message)}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -103,6 +159,16 @@ function SemestersPage() {
         />
       ),
     },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row) => (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={() => handleEditOpen(row)} style={actionBtn}>Edit</button>
+          <button onClick={() => handleDelete(row)} style={{ ...btn.danger, padding: "7px 12px", fontSize: "12px" }}>Delete</button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -115,6 +181,46 @@ function SemestersPage() {
           onConfirm={() => { doToggle(pendingToggle.id, pendingToggle.field, pendingToggle.currentValue); setPendingToggle(null); }}
           onCancel={() => setPendingToggle(null)}
         />
+      )}
+
+      {pendingDelete && (
+        <ConfirmModal
+          title="Delete Semester?"
+          message={`Deleting semester ${pendingDelete.name} will remove registrations, fee verifications, route assignments, seat allocations, and related data for that term. This cannot be undone.`}
+          confirmLabel="Yes, Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {editingSemester && (
+        <FormModal
+          title="Edit Semester"
+          sub="Update the semester details. Active and registration status are managed separately."
+          submitLabel="Save Changes"
+          loading={savingEdit}
+          onClose={() => setEditingSemester(null)}
+          onSubmit={handleEditSubmit}
+          width="700px"
+        >
+          <Field label="Year" required flex="0 1 110px">
+            <input name="year" type="number" placeholder="2026" value={editForm.year} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="Term" required flex="0 1 150px">
+            <select name="term" value={editForm.term} onChange={handleEditChange} style={selectStyle}>
+              <option value="">Select Term</option>
+              <option value="Spring">Spring</option>
+              <option value="Fall">Fall</option>
+              <option value="Summer">Summer</option>
+            </select>
+          </Field>
+          <Field label="Start Date" required flex="0 1 150px">
+            <input name="start_date" type="date" value={editForm.start_date} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+          <Field label="End Date" required flex="0 1 150px">
+            <input name="end_date" type="date" value={editForm.end_date} onChange={handleEditChange} style={inputStyle} />
+          </Field>
+        </FormModal>
       )}
 
       <PageTitle sub="Manage academic semesters and registration windows.">Semesters</PageTitle>
