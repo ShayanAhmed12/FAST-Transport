@@ -65,7 +65,7 @@ function OTPVerification() {
     <div style={styles.root}>
       <MeshGradient
         style={styles.shader}
-        colors={["#291919", "#ef9898", "#b31c1c", "#c42828"]}
+        colors={["#0f3247", "#62a1be", "#f5f8de", "#288dc4"]}
         distortion={0.5}
         swirl={0.3}
         speed={0.5}
@@ -232,13 +232,13 @@ const styles = {
   },
   card: {
     width: "100%",
-    background: "rgba(255,255,255,0.04)",
+    background: "rgba(0,0,0,0.16)",
     border: "1px solid rgba(255,255,255,0.10)",
     borderRadius: "20px",
     padding: "36px 32px",
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
-    boxShadow: "0 0 0 1px rgba(255,255,255,0.03), 0 32px 64px rgba(0,0,0,0.5)",
+    boxShadow: "0 32px 64px rgba(0,0,0,0.6)",
     boxSizing: "border-box",
   },
   cardHeader: {
@@ -302,8 +302,8 @@ const styles = {
     textTransform: "uppercase",
   },
   input: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: "10px",
     padding: "12px 14px",
     fontSize: "14px",
