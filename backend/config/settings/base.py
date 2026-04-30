@@ -1,7 +1,10 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+load_dotenv(BASE_DIR.parent / '.env')
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'change-me-in-production-use-a-long-random-string-at-least-32-chars!!')
 
@@ -83,4 +86,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'a8d609001@smtp-brevo.com'
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")  # brevo SMTP password
 
-DEFAULT_FROM_EMAIL = 'FAST Transport <thundermarks.agency@gmail.com>'
+DEFAULT_FROM_EMAIL = 'FAST Transport <hassannafees.4017@gmail.com>'
