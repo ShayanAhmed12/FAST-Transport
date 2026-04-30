@@ -8,7 +8,7 @@ function Home() {
     <div style={styles.root}>
       <MeshGradient
   style={styles.shader}
-  colors={["#291919", "#ef9898", "#b31c1c", "#c42828"]}
+  colors={["#0f3247", "#62a1be", "#f5f8de", "#288dc4"]}
   distortion={0.5}
   swirl={0.3}
   speed={0.5}
@@ -32,7 +32,7 @@ function Home() {
 
         {/* Headline */}
         <h1 style={styles.headline}>
-          Student Transport<br />
+          <span style={styles.glowText}>Student Transport</span><br />
           <span style={styles.headlineDim}>Made Simple</span>
         </h1>
 
@@ -82,6 +82,10 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+  },
+  glowText: {
+    color: "#ffffff",
+    textShadow: "0 0 8px rgba(255,255,255,0.35), 0 0 18px rgba(96, 165, 250, 0.25)",
   },
   shader: {
     position: "absolute",

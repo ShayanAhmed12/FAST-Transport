@@ -33,12 +33,13 @@ function Login() {
   return (
     <div style={styles.root}>
       <MeshGradient
-  style={styles.shader}
-  colors={["#0f3247", "#62a1be", "#f5f8de", "#288dc4"]}
-  distortion={0.5}
-  swirl={0.3}
-  speed={0.5}
-/>
+        style={styles.shader}
+        colors={["#0f3247", "#62a1be", "#f5f8de", "#288dc4"]}
+        distortion={0.5}
+        swirl={0.3}
+        speed={0.5}
+      />
+      <div style={styles.overlay} /> 
       <div style={styles.grain} />
 
       <div style={styles.container}>
@@ -147,6 +148,12 @@ const styles = {
     height: "100%",
     zIndex: 0,
   },
+  overlay: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(61, 60, 60, 0)",
+    zIndex: 1,
+  },
   grain: {
     position: "absolute",
     inset: 0,
@@ -202,13 +209,13 @@ const styles = {
   },
   card: {
     width: "100%",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(0, 0, 0, 0.16)",  // ← changed
+    border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "20px",
     padding: "36px 32px",
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
-    boxShadow: "0 0 0 1px rgba(255,255,255,0.03), 0 32px 64px rgba(0,0,0,0.5)",
+    boxShadow: "0 32px 64px rgba(0,0,0,0.6)",
     boxSizing: "border-box",
   },
   cardHeader: {
@@ -251,13 +258,13 @@ const styles = {
   label: {
     fontSize: "12px",
     fontWeight: 500,
-    color: "rgba(255,255,255,0.5)",
+    color: "rgba(255,255,255,0.7)",
     letterSpacing: "0.04em",
     textTransform: "uppercase",
   },
   input: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: "10px",
     padding: "12px 14px",
     fontSize: "14px",
@@ -293,11 +300,13 @@ const styles = {
     justifyContent: "center",
     letterSpacing: "-0.01em",
     boxSizing: "border-box",
+    transition: "all 0.25s ease",
+    boxShadow: "0 0 12px rgba(255, 255, 255, 0.6), 0 0 24px rgba(252, 252, 252, 0)",
   },
   buttonHover: {
     marginTop: "6px",
-    background: "#e0e0e0",
-    color: "#000",
+    background: "#289ddc2c",
+    color: "#fff",  
     border: "none",
     borderRadius: "10px",
     padding: "13px",
@@ -310,6 +319,7 @@ const styles = {
     justifyContent: "center",
     letterSpacing: "-0.01em",
     boxSizing: "border-box",
+    transform: "translateY(-1px)",
   },
   buttonDisabled: {
     background: "rgba(255,255,255,0.12)",
@@ -319,8 +329,8 @@ const styles = {
   spinner: {
     width: "16px",
     height: "16px",
-    border: "2px solid rgba(0,0,0,0.2)",
-    borderTopColor: "#000",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#fff",
     borderRadius: "50%",
     animation: "spin 0.7s linear infinite",
     display: "inline-block",

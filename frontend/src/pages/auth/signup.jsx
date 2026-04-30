@@ -4,6 +4,7 @@ import { MeshGradient } from "@paper-design/shaders-react";
 import { signup } from "../../services/transportService";
 
 function Signup() {
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -23,176 +24,264 @@ function Signup() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleNext = (e) => {
+    e.preventDefault();
+    if (!formData.username || !formData.email || !formData.password) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+    setError("");
+    setStep(2);
+  };
 
- const handleSignup = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    await signup(formData);
-
-    // SAVE EMAIL for OTP page
-
-
-    // REDIRECT TO OTP PAGE
-   
-    localStorage.setItem("otp_email", formData.email);
-    navigate("/verify-otp", { 
-      state: { 
-        email: formData.email, 
-        username: formData.username, 
-        password: formData.password 
-      } 
-    });
-
-  } catch (err) {
-    setError(JSON.stringify(err.response?.data || "Signup failed"));
-  } finally {
-    setLoading(false);
-  }
-};
-
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await signup(formData);
+      localStorage.setItem("otp_email", formData.email);
+      navigate("/verify-otp", {
+        state: {
+          email: formData.email,
+          username: formData.username,
+          password: formData.password,
+        },
+      });
+    } catch (err) {
+      setError(JSON.stringify(err.response?.data || "Signup failed"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={styles.root}>
       <MeshGradient
-  style={styles.shader}
-  colors={["#291919", "#ef9898", "#b31c1c", "#c42828"]}
-  distortion={0.5}
-  swirl={0.3}
-  speed={0.5}
-/>
-
+        style={styles.shader}
+        colors={["#0f3247", "#62a1be", "#f5f8de", "#288dc4"]}
+        distortion={0.5}
+        swirl={0.3}
+        speed={0.5}
+      />
       <div style={styles.grain} />
 
-      <div style={styles.scroll}>
-        <div style={styles.container}>
-          <div style={styles.brand}>
-            <div style={styles.logoMark}>
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect x="2" y="8" width="24" height="12" rx="2" stroke="white" strokeWidth="1.5" />
-                <circle cx="8" cy="22" r="3" fill="white" />
-                <circle cx="20" cy="22" r="3" fill="white" />
-                <path d="M2 12h6l2-4h8l2 4" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
+      <div style={styles.container}>
+        {/* Brand */}
+        <div style={styles.brand}>
+          <div style={styles.logoMark}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect x="2" y="8" width="24" height="12" rx="2" stroke="white" strokeWidth="1.5" />
+              <circle cx="8" cy="22" r="3" fill="white" />
+              <circle cx="20" cy="22" r="3" fill="white" />
+              <path d="M2 12h6l2-4h8l2 4" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <p style={styles.brandSub}>FAST NUCES</p>
+            <h1 style={styles.brandName}>Transport Portal</h1>
+          </div>
+        </div>
+
+        {/* Card */}
+        <div style={styles.card}>
+          {/* Header */}
+          <div style={styles.cardHeader}>
+            <div style={styles.stepRow}>
+              <div style={styles.stepPip(step >= 1)} />
+              <div style={styles.stepLine(step >= 2)} />
+              <div style={styles.stepPip(step >= 2)} />
             </div>
-            <div>
-              <p style={styles.brandSub}>FAST NUCES</p>
-              <h1 style={styles.brandName}>Transport Portal</h1>
-            </div>
+            <h2 style={styles.cardTitle}>
+              {step === 1 ? "Create account" : "Student details"}
+            </h2>
+            <p style={styles.cardDesc}>
+              {step === 1
+                ? "Step 1 of 2 — Set up your credentials"
+                : "Step 2 of 2 — Tell us about yourself"}
+            </p>
           </div>
 
-          <div style={styles.card}>
-            <div style={styles.cardHeader}>
-              <h2 style={styles.cardTitle}>Create account</h2>
-              <p style={styles.cardDesc}>Register for student transport access</p>
+          {/* Error */}
+          {error && (
+            <div style={styles.errorBox}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <span>{error}</span>
             </div>
+          )}
 
-            {error && (
-              <div style={styles.errorBox}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSignup} style={styles.form}>
-              {/* Account Section */}
-              <div style={styles.sectionLabel}>Account</div>
-
+          {/* Step 1 */}
+          {step === 1 && (
+            <form onSubmit={handleNext} style={styles.form}>
               <div style={styles.field}>
                 <label style={styles.label}>Username <span style={styles.req}>*</span></label>
-                <input name="username" type="text" placeholder="e.g. ali_khan" onChange={handleChange} required
+                <input
+                  name="username"
+                  type="text"
+                  placeholder="e.g. ali_khan"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
                   style={styles.input}
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                  onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                  onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                />
               </div>
 
               <div style={styles.field}>
                 <label style={styles.label}>Email <span style={styles.req}>*</span></label>
-                <input name="email" type="email" placeholder="you@nu.edu.pk" onChange={handleChange} required
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="you@nu.edu.pk"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   style={styles.input}
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                  onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                  onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                />
               </div>
 
               <div style={styles.field}>
                 <label style={styles.label}>Password <span style={styles.req}>*</span></label>
-                <input name="password" type="password" placeholder="Min. 8 characters" onChange={handleChange} required
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Min. 8 characters"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
                   style={styles.input}
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                  onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                  onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                />
               </div>
 
-              {/* Student Details Section */}
-              <div style={{ ...styles.sectionLabel, marginTop: "8px" }}>Student Details</div>
+              <button
+                type="submit"
+                style={styles.button}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.buttonHover)}
+                onMouseLeave={(e) => Object.assign(e.target.style, styles.button)}
+              >
+                Continue →
+              </button>
+            </form>
+          )}
 
+          {/* Step 2 */}
+          {step === 2 && (
+            <form onSubmit={handleSignup} style={styles.form}>
               <div style={styles.grid}>
                 <div style={styles.field}>
                   <label style={styles.label}>Roll Number <span style={styles.req}>*</span></label>
-                  <input name="roll_number" type="text" placeholder="22K-1234" onChange={handleChange} required
+                  <input
+                    name="roll_number"
+                    type="text"
+                    placeholder="22K-1234"
+                    value={formData.roll_number}
+                    onChange={handleChange}
+                    required
                     style={styles.input}
                     onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                    onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                    onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                  />
                 </div>
 
                 <div style={styles.field}>
                   <label style={styles.label}>Batch</label>
-                  <input name="batch" type="text" placeholder="e.g. 2022" onChange={handleChange}
+                  <input
+                    name="batch"
+                    type="text"
+                    placeholder="e.g. 2022"
+                    value={formData.batch}
+                    onChange={handleChange}
                     style={styles.input}
                     onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                    onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                    onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                  />
                 </div>
 
                 <div style={styles.field}>
                   <label style={styles.label}>Department</label>
-                  <input name="department" type="text" placeholder="e.g. CS, SE" onChange={handleChange}
+                  <input
+                    name="department"
+                    type="text"
+                    placeholder="e.g. CS, SE"
+                    value={formData.department}
+                    onChange={handleChange}
                     style={styles.input}
                     onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                    onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                    onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                  />
                 </div>
 
                 <div style={styles.field}>
                   <label style={styles.label}>Phone</label>
-                  <input name="phone" type="text" placeholder="+92 300 0000000" onChange={handleChange}
+                  <input
+                    name="phone"
+                    type="text"
+                    placeholder="+92 300 0000000"
+                    value={formData.phone}
+                    onChange={handleChange}
                     style={styles.input}
                     onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                    onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                    onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                  />
                 </div>
               </div>
 
               <div style={styles.field}>
                 <label style={styles.label}>Home Address</label>
-                <input name="address" type="text" placeholder="Your pickup area" onChange={handleChange}
+                <input
+                  name="address"
+                  type="text"
+                  placeholder="Your pickup area"
+                  value={formData.address}
+                  onChange={handleChange}
                   style={styles.input}
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-                  onBlur={(e) => Object.assign(e.target.style, styles.input)} />
+                  onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={loading ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
-                onMouseEnter={(e) => { if (!loading) Object.assign(e.target.style, styles.buttonHover); }}
-                onMouseLeave={(e) => { if (!loading) Object.assign(e.target.style, styles.button); }}
-              >
-                {loading ? <span style={styles.spinner} /> : "Create Account"}
-              </button>
+              <div style={styles.btnRow}>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  style={styles.backButton}
+                  onMouseEnter={(e) => Object.assign(e.target.style, styles.backButtonHover)}
+                  onMouseLeave={(e) => Object.assign(e.target.style, styles.backButton)}
+                >
+                  ← Back
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={loading ? { ...styles.button, ...styles.buttonDisabled, flex: 1 } : { ...styles.button, flex: 1 }}
+                  onMouseEnter={(e) => { if (!loading) Object.assign(e.target.style, { ...styles.buttonHover, flex: 1 }); }}
+                  onMouseLeave={(e) => { if (!loading) Object.assign(e.target.style, { ...styles.button, flex: 1 }); }}
+                >
+                  {loading ? <span style={styles.spinner} /> : "Create Account"}
+                </button>
+              </div>
             </form>
+          )}
 
-            <p style={styles.footer}>
-              Already have an account?{" "}
-              <Link to="/login" style={styles.link}>Sign in</Link>
-            </p>
-          </div>
-
-          <p style={styles.bottomNote}>
-            © {new Date().getFullYear()} FAST-NUCES · Transport Management System
+          <p style={styles.footer}>
+            Already have an account?{" "}
+            <Link to="/login" style={styles.link}>Sign in</Link>
           </p>
         </div>
+
+        <p style={styles.bottomNote}>
+          © {new Date().getFullYear()} FAST-NUCES · Transport Management System
+        </p>
       </div>
     </div>
   );
@@ -205,6 +294,9 @@ const styles = {
     height: "100vh",
     overflow: "hidden",
     background: "#000",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
   },
   shader: {
@@ -223,24 +315,17 @@ const styles = {
     backgroundSize: "128px 128px",
     pointerEvents: "none",
   },
-  scroll: {
+  container: {
     position: "relative",
     zIndex: 2,
-    width: "100%",
-    height: "100%",
-    overflowY: "auto",
-    display: "flex",
-    justifyContent: "center",
-    padding: "40px 20px",
-    boxSizing: "border-box",
-  },
-  container: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     gap: "28px",
     width: "100%",
-    maxWidth: "460px",
+    maxWidth: "420px",
+    padding: "0 20px",
+    boxSizing: "border-box",
   },
   brand: {
     display: "flex",
@@ -276,20 +361,41 @@ const styles = {
   },
   card: {
     width: "100%",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(0,0,0,0.16)",
+    border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "20px",
-    padding: "36px 32px",
+    padding: "32px 30px",
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
-    boxShadow: "0 0 0 1px rgba(255,255,255,0.03), 0 32px 64px rgba(0,0,0,0.5)",
+    boxShadow: "0 32px 64px rgba(0,0,0,0.6)",
     boxSizing: "border-box",
   },
   cardHeader: {
-    marginBottom: "28px",
+    marginBottom: "24px",
   },
+  stepRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0",
+    marginBottom: "18px",
+  },
+  stepPip: (active) => ({
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    background: active ? "#fff" : "rgba(255,255,255,0.18)",
+    transition: "background 0.3s ease",
+    flexShrink: 0,
+  }),
+  stepLine: (active) => ({
+    flex: 1,
+    height: "1px",
+    background: active ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.12)",
+    transition: "background 0.3s ease",
+    margin: "0 6px",
+  }),
   cardTitle: {
-    margin: "0 0 6px",
+    margin: "0 0 5px",
     fontSize: "22px",
     fontWeight: 700,
     color: "#fff",
@@ -308,49 +414,41 @@ const styles = {
     border: "1px solid rgba(255,107,107,0.2)",
     borderRadius: "10px",
     padding: "10px 14px",
-    marginBottom: "20px",
+    marginBottom: "18px",
     fontSize: "13px",
     color: "#ff6b6b",
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
-  },
-  sectionLabel: {
-    fontSize: "10px",
-    fontWeight: 600,
-    letterSpacing: "0.15em",
-    color: "rgba(255,255,255,0.25)",
-    textTransform: "uppercase",
-    marginBottom: "-6px",
+    gap: "14px",
   },
   grid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: "14px",
+    gap: "12px",
   },
   field: {
     display: "flex",
     flexDirection: "column",
-    gap: "7px",
+    gap: "6px",
   },
   label: {
-    fontSize: "12px",
-    fontWeight: 500,
+    fontSize: "11px",
+    fontWeight: 600,
     color: "rgba(255,255,255,0.5)",
-    letterSpacing: "0.04em",
+    letterSpacing: "0.06em",
     textTransform: "uppercase",
   },
   req: {
     color: "rgba(255,100,100,0.7)",
   },
   input: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: "10px",
     padding: "11px 13px",
-    fontSize: "13px",
+    fontSize: "13.5px",
     color: "#fff",
     outline: "none",
     width: "100%",
@@ -361,19 +459,24 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.28)",
     borderRadius: "10px",
     padding: "11px 13px",
-    fontSize: "13px",
+    fontSize: "13.5px",
     color: "#fff",
     outline: "none",
     width: "100%",
     boxSizing: "border-box",
   },
+  btnRow: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "4px",
+  },
   button: {
-    marginTop: "8px",
+    marginTop: "2px",
     background: "#fff",
     color: "#000",
     border: "none",
     borderRadius: "10px",
-    padding: "13px",
+    padding: "12px",
     fontSize: "14px",
     fontWeight: 600,
     cursor: "pointer",
@@ -383,14 +486,15 @@ const styles = {
     justifyContent: "center",
     letterSpacing: "-0.01em",
     boxSizing: "border-box",
+    boxShadow: "0 0 12px rgba(255,255,255,0.5)",
   },
   buttonHover: {
-    marginTop: "8px",
-    background: "#e0e0e0",
-    color: "#000",
+    marginTop: "2px",
+    background: "#288dc4",
+    color: "#fff",
     border: "none",
     borderRadius: "10px",
-    padding: "13px",
+    padding: "12px",
     fontSize: "14px",
     fontWeight: 600,
     cursor: "pointer",
@@ -400,23 +504,57 @@ const styles = {
     justifyContent: "center",
     letterSpacing: "-0.01em",
     boxSizing: "border-box",
+    transform: "translateY(-1px)",
+    boxShadow: "0 0 14px rgba(40,141,196,0.45)",
   },
   buttonDisabled: {
     background: "rgba(255,255,255,0.12)",
     color: "rgba(255,255,255,0.4)",
     cursor: "not-allowed",
   },
+  backButton: {
+    background: "rgba(255,255,255,0.07)",
+    color: "rgba(255,255,255,0.6)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "10px",
+    padding: "12px 18px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    letterSpacing: "-0.01em",
+    boxSizing: "border-box",
+    flexShrink: 0,
+  },
+  backButtonHover: {
+    background: "rgba(255,255,255,0.12)",
+    color: "rgba(255,255,255,0.9)",
+    border: "1px solid rgba(255,255,255,0.2)",
+    borderRadius: "10px",
+    padding: "12px 18px",
+    fontSize: "14px",
+    fontWeight: 500,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    letterSpacing: "-0.01em",
+    boxSizing: "border-box",
+    flexShrink: 0,
+  },
   spinner: {
     width: "16px",
     height: "16px",
-    border: "2px solid rgba(0,0,0,0.2)",
-    borderTopColor: "#000",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#fff",
     borderRadius: "50%",
     animation: "spin 0.7s linear infinite",
     display: "inline-block",
   },
   footer: {
-    marginTop: "20px",
+    marginTop: "18px",
     textAlign: "center",
     fontSize: "13px",
     color: "rgba(255,255,255,0.35)",
@@ -434,7 +572,7 @@ const styles = {
     color: "rgba(255,255,255,0.18)",
     letterSpacing: "0.03em",
     textAlign: "center",
-    margin: "0 0 20px",
+    margin: 0,
   },
 };
 

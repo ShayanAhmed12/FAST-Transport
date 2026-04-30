@@ -344,8 +344,8 @@ const styles = {
   },
   buttonHover: {
     marginTop: "6px",
-    background: "#e0e0e0",
-    color: "#000",
+    background: "#288dc4",
+    color: "#fff",
     border: "none",
     borderRadius: "10px",
     padding: "13px",
@@ -358,6 +358,9 @@ const styles = {
     justifyContent: "center",
     letterSpacing: "-0.01em",
     boxSizing: "border-box",
+    transform: "translateY(-1px)",
+    boxShadow:
+      "0 0 12px rgba(40, 141, 196, 0.55), 0 0 28px rgba(40, 141, 196, 0.25)",
   },
   buttonDisabled: {
     background: "rgba(255,255,255,0.12)",
@@ -367,8 +370,8 @@ const styles = {
   spinner: {
     width: "16px",
     height: "16px",
-    border: "2px solid rgba(0,0,0,0.2)",
-    borderTopColor: "#000",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#fff",
     borderRadius: "50%",
     animation: "spin 0.7s linear infinite",
     display: "inline-block",
