@@ -86,101 +86,102 @@ export default function StudentRouteChange() {
             Select your new stop below. The system will automatically determine the best route for you.
           </p>
 
-          {/* Current assignment info */}
-          {currentRoute && (
-            <div style={currentInfoStyle}>
-              <span style={{ fontSize: "12px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em" }}>Current Assignment</span>
-              <p style={{ margin: "6px 0 0", fontSize: "14px" }}>
-                <strong>Route:</strong> {currentRoute} &nbsp;·&nbsp; <strong>Stop:</strong> {currentStop}
-              </p>
-            </div>
-          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
 
-          {/* ── Submit Form ── */}
-          {!hasPending && (
-            <div style={cardStyle}>
-              <h3 style={{ margin: "0 0 16px", fontSize: "15px" }}>New Request</h3>
+            {/* Left: form */}
+            <div>
+              {currentRoute && (
+                <div style={currentInfoStyle}>
+                  <span style={{ fontSize: "12px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.04em" }}>Current Assignment</span>
+                  <p style={{ margin: "6px 0 0", fontSize: "14px" }}>
+                    <strong>Route:</strong> {currentRoute} &nbsp;·&nbsp; <strong>Stop:</strong> {currentStop}
+                  </p>
+                </div>
+              )}
 
-              {error   && <div style={errorBanner}>{error}</div>}
-              {success && <div style={successBanner}>{success}</div>}
+              {hasPending && (
+                <div style={{ ...errorBanner, background: "#fff3cd", borderColor: "#fcd34d", color: "#92400e", marginBottom: "20px" }}>
+                  ⚠ You already have a pending request. Cancel it before submitting a new one.
+                </div>
+              )}
 
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div style={fieldStyle}>
-                  <label style={labelStyle}>New Stop</label>
-                  <select
+              {!hasPending && (
+                <div style={cardStyle}>
+                  <h3 style={{ margin: "0 0 16px", fontSize: "15px" }}>New Request</h3>
+                  {error   && <div style={errorBanner}>{error}</div>}
+                  {success && <div style={successBanner}>{success}</div>}
+                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={fieldStyle}>
+                      <label style={labelStyle}>New Stop</label>
+                      <select
                         style={selectStyle}
                         value={form.requested_stop_id}
                         onChange={(e) => setForm({ requested_stop_id: e.target.value })}
-                        onBlur={() => { if (!form.requested_stop_id) setError("Please select a new stop."); else setError(""); }}
                       >
-                    <option value="">— Select your new stop —</option>
-                    {allStops
-                      .filter((s) => s.name !== currentStop)  // exclude current stop
-                      .map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                  </select>
-                  <span style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
-                    The route will be auto-assigned based on stop proximity.
-                  </span>
-                </div>
-
-                <button type="submit" disabled={submitting} style={submitBtnStyle}>
-                  {submitting ? "Submitting…" : "Submit Request"}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {hasPending && (
-            <div style={{ ...errorBanner, background: "#fff3cd", borderColor: "#fcd34d", color: "#92400e", marginBottom: "20px" }}>
-              ⚠ You already have a pending request. Cancel it before submitting a new one.
-            </div>
-          )}
-
-          {/* ── Request History ── */}
-          <h3 style={{ margin: "24px 0 12px", fontSize: "15px" }}>My Requests</h3>
-          {requests.length === 0 ? (
-            <p style={{ color: "#9ca3af", fontSize: "14px" }}>No requests yet.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {requests.map((req) => (
-                <div key={req.id} style={requestCardStyle}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div>
-                      <p style={{ margin: "0 0 4px", fontWeight: "600", fontSize: "14px" }}>
-                        {req.current_route?.name} → {req.requested_route?.name || "Auto-assigned"}
-                      </p>
-                      <p style={{ margin: "0 0 4px", fontSize: "13px", color: "#6b7280" }}>
-                        New Stop: {req.requested_stop?.name} · Semester: {req.registration?.semester?.name}
-                      </p>
-                      {req.admin_remarks && req.admin_remarks !== "N/A" && (
-                        <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#6b7280" }}>
-                          Admin note: {req.admin_remarks}
-                        </p>
-                      )}
+                        <option value="">— Select your new stop —</option>
+                        {allStops.filter((s) => s.name !== currentStop).map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                      <span style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
+                        Route will be auto-assigned based on stop proximity.
+                      </span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-                      <span style={{ ...badgeStyle, ...STATUS_STYLE[req.status] }}>{req.status}</span>
-                      {req.status === "Pending" && (
-                        <button
-                          style={cancelBtnStyle}
-                          disabled={cancelling === req.id}
-                          onClick={() => handleCancel(req.id)}
-                        >
-                          {cancelling === req.id ? "Cancelling…" : "Cancel"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p style={{ margin: "8px 0 0", fontSize: "11px", color: "#9ca3af" }}>
-                    Submitted: {new Date(req.requested_at).toLocaleDateString()}
-                    {req.resolved_at && ` · Resolved: ${new Date(req.resolved_at).toLocaleDateString()}`}
-                  </p>
+                    <button type="submit" disabled={submitting} style={submitBtnStyle}>
+                      {submitting ? "Submitting…" : "Submit Request"}
+                    </button>
+                  </form>
                 </div>
-              ))}
+              )}
             </div>
-          )}
+
+            {/* Right: request history */}
+            <div>
+              <h3 style={{ margin: "0 0 12px", fontSize: "15px" }}>My Requests</h3>
+              {requests.length === 0 ? (
+                <p style={{ color: "#9ca3af", fontSize: "14px" }}>No requests yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {requests.map((req) => (
+                    <div key={req.id} style={requestCardStyle}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <p style={{ margin: "0 0 4px", fontWeight: "600", fontSize: "14px" }}>
+                            {req.current_route?.name} → {req.requested_route?.name || "Auto-assigned"}
+                          </p>
+                          <p style={{ margin: "0 0 4px", fontSize: "13px", color: "#6b7280" }}>
+                            New Stop: {req.requested_stop?.name} · Semester: {req.registration?.semester?.name}
+                          </p>
+                          {req.admin_remarks && req.admin_remarks !== "N/A" && (
+                            <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#6b7280" }}>
+                              Admin note: {req.admin_remarks}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+                          <span style={{ ...badgeStyle, ...STATUS_STYLE[req.status] }}>{req.status}</span>
+                          {req.status === "Pending" && (
+                            <button
+                              style={cancelBtnStyle}
+                              disabled={cancelling === req.id}
+                              onClick={() => handleCancel(req.id)}
+                            >
+                              {cancelling === req.id ? "Cancelling…" : "Cancel"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p style={{ margin: "8px 0 0", fontSize: "11px", color: "#9ca3af" }}>
+                        Submitted: {new Date(req.requested_at).toLocaleDateString()}
+                        {req.resolved_at && ` · Resolved: ${new Date(req.resolved_at).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
       </div>
     </div>

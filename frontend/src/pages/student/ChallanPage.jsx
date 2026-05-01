@@ -59,8 +59,8 @@ function StripeCardForm({ amount, onSuccess, onCancel }) {
   return (
     <div style={{ border: `1px solid ${colors.borderLight}`, borderRadius: radius.lg, padding: "24px", background: colors.pageBg, marginBottom: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "18px" }}>
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <rect width="28" height="28" rx="6" fill="#288dc4" />
+        <svg width="45" height="28" viewBox="0 0 45 28" fill="none">
+          <rect width="45" height="28" rx="6" fill="#288dc4" />
           <text x="6" y="19" fill="white" fontSize="12" fontWeight="700" fontFamily="sans-serif">Stripe</text>
         </svg>
         <span style={{ fontSize: "14px", fontWeight: 600, color: colors.textPrimary }}>Stripe Test Payment</span>
@@ -91,7 +91,7 @@ function StripeCardForm({ amount, onSuccess, onCancel }) {
       </div>
       <div style={{ display: "flex", gap: "10px" }}>
         <button onClick={onCancel} disabled={processing} style={{ ...btn.ghost, flex: "0 0 auto" }}>Cancel</button>
-        <button onClick={handlePay} disabled={processing} style={{ ...btn.primary, background: "#635BFF", flex: 1 }}>
+        <button onClick={handlePay} disabled={processing} style={{ ...btn.primary, background: "#288dc4", flex: 1 }}>
           {processing ? "Processing…" : `Pay PKR ${amount}`}
         </button>
       </div>
@@ -131,7 +131,30 @@ function OTPInput({ emailHint, onVerify, onResend }) {
     <div style={{ border: `1px solid ${colors.borderLight}`, borderRadius: radius.lg, padding: "28px 24px", background: colors.pageBg, marginBottom: "20px" }}>
       <div style={{ textAlign: "center", marginBottom: "20px" }}>
         <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: colors.infoBg, display: "grid", placeItems: "center", margin: "0 auto 12px" }}>
-          <span style={{ fontSize: "24px" }}>📧</span>
+          <span
+            style={{
+              display: "inline-flex",
+              color: "#9ca3af",
+              cursor: "pointer",
+              transition: "0.2s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = "#fff"}
+            onMouseLeave={e => e.currentTarget.style.color = "#9ca3af"}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M3 7l9 6 9-6" />
+            </svg>
+          </span>
         </div>
         <h3 style={{ margin: "0 0 6px", fontSize: "18px", color: colors.textPrimary }}>OTP Verification</h3>
         <p style={{ margin: 0, fontSize: "13px", color: colors.textSecondary }}>
@@ -147,7 +170,7 @@ function OTPInput({ emailHint, onVerify, onResend }) {
             maxLength={1} inputMode="numeric" />
         ))}
       </div>
-      <button onClick={handleSubmit} disabled={verifying} style={{ ...btn.primary, background: "#635BFF", width: "100%", padding: "12px" }}>
+      <button onClick={handleSubmit} disabled={verifying} style={{ ...btn.primary, background: "#288dc4", width: "100%", padding: "12px" }}>
         {verifying ? "Verifying…" : "Verify OTP"}
       </button>
       <p style={{ fontSize: "12px", color: colors.textMuted, textAlign: "center", margin: "14px 0 0" }}>

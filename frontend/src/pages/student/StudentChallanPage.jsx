@@ -34,22 +34,42 @@ function StudentChallanPage() {
       ) : !registration ? (
         <p style={{ color: colors.textMuted, fontSize: "13.5px" }}>No transport registration found.</p>
       ) : (
-        <ContentCard style={{ maxWidth: "520px" }}>
-          <DetailRow label="Route"    value={registration.route_name} />
-          <DetailRow label="Stop"     value={registration.stop_name} />
-          <DetailRow label="Semester" value={registration.semester_name} />
-          <DetailRow label="Status"   value={
-            <Pill
-              label={registration.status}
-              variant={registration.status === "Approved" ? "success" : registration.status === "Rejected" ? "danger" : "warning"}
-            />
-          } />
-          <div style={{ marginTop: "16px" }}>
-            <button style={btn.primary} onClick={() => navigate(`/student/challan/${registration.id}`)}>
-              View Challan →
-            </button>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
+          <ContentCard>
+            <DetailRow label="Route"    value={registration.route_name} />
+            <DetailRow label="Stop"     value={registration.stop_name} />
+            <DetailRow label="Semester" value={registration.semester_name} />
+            <DetailRow label="Status"   value={
+              <Pill
+                label={registration.status}
+                variant={registration.status === "Approved" ? "success" : registration.status === "Rejected" ? "danger" : "warning"}
+              />
+            } />
+            <div style={{ marginTop: "16px" }}>
+              <button style={btn.primary} onClick={() => navigate(`/student/challan/${registration.id}`)}>
+                View Challan →
+              </button>
+            </div>
+          </ContentCard>
+
+          <div style={{ background: colors.pageBg, border: `1px solid ${colors.borderLight}`, borderRadius: "12px", padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div>
+              <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Payment Status</p>
+              <Pill
+                label={registration.status}
+                variant={registration.status === "Approved" ? "success" : registration.status === "Rejected" ? "danger" : "warning"}
+              />
+            </div>
+            <div style={{ borderTop: `1px solid ${colors.borderLight}`, paddingTop: "16px" }}>
+              <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>What's Next?</p>
+              <p style={{ margin: 0, fontSize: "13px", color: colors.textSecondary, lineHeight: 1.7 }}>
+                {registration.status === "Approved"
+                  ? "Your fee has been verified and your seat is confirmed for this semester."
+                  : "Pay your challan to complete your transport registration. Your seat will be allocated after admin verification."}
+              </p>
+            </div>
           </div>
-        </ContentCard>
+        </div>
       )}
     </PageShell>
   );

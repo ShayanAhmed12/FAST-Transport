@@ -284,9 +284,9 @@ export function Spinner() {
 // ── Detail row (label + value pair) ──────────────────────────────────────────
 export function DetailRow({ label, value }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${colors.borderLight}` }}>
+    <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", alignItems: "center", gap: "12px", padding: "9px 0", borderBottom: `1px solid ${colors.borderLight}` }}>
       <span style={{ fontSize: "12px", fontWeight: "600", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
-      <span style={{ fontSize: "13.5px", fontWeight: "500", color: colors.textPrimary, textAlign: "right", maxWidth: "60%" }}>{value ?? "—"}</span>
+      <span style={{ fontSize: "13.5px", fontWeight: "500", color: colors.textPrimary }}>{value ?? "—"}</span>
     </div>
   );
 }

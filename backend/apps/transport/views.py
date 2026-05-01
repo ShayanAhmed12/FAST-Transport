@@ -1081,6 +1081,7 @@ class DashboardView(APIView):
             data = {
                 "role": "student",
                 "profile": {
+                    "username": profile.user.username,
                     "roll_number": profile.roll_number,
                     "department": profile.department,
                     "batch": profile.batch,
@@ -1367,14 +1368,6 @@ def student_bus_tracking(request):
         "driver_name": assignment.driver.name,
         "driver_phone": assignment.driver.phone,
     } if assignment else None
-
-    # --- GPS LIVE LOCATION (commented for future use) ---
-    # When you have GPS access, replace the simulation in the frontend with:
-    # bus_location = BusLocation.objects.filter(route=route).order_by('-updated_at').first()
-    # if bus_location:
-    #     live = {"lat": float(bus_location.lat), "lng": float(bus_location.lng)}
-    # return it in the response as "live_location": live
-    # ---
 
     return Response({
         "route_name": route.name,
