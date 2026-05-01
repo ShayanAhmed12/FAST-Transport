@@ -60,7 +60,7 @@ function StripeCardForm({ amount, onSuccess, onCancel }) {
     <div style={{ border: `1px solid ${colors.borderLight}`, borderRadius: radius.lg, padding: "24px", background: colors.pageBg, marginBottom: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "18px" }}>
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <rect width="28" height="28" rx="6" fill="#635BFF" />
+          <rect width="28" height="28" rx="6" fill="#288dc4" />
           <text x="6" y="19" fill="white" fontSize="12" fontWeight="700" fontFamily="sans-serif">Stripe</text>
         </svg>
         <span style={{ fontSize: "14px", fontWeight: 600, color: colors.textPrimary }}>Stripe Test Payment</span>
@@ -254,7 +254,7 @@ function ChallanPage() {
         <DetailRow label="Status"   value={isPaid ? "Paid" : "Unpaid"} />
         {!isPaid && step === 0 && (
           <div style={{ marginTop: "16px" }}>
-            <button onClick={handleStartPayment} style={{ ...btn.primary, background: "#635BFF", display: "flex", alignItems: "center", gap: "8px" }}>
+            <button onClick={handleStartPayment} style={{ ...btn.primary, background: "#288dc4", display: "flex", alignItems: "center", gap: "8px" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
               Pay PKR {data.amount}
             </button>
