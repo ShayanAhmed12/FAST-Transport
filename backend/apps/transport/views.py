@@ -20,7 +20,14 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 import requests as req_lib
 from rest_framework.decorators import api_view, permission_classes
-
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+import io
 from .permissions import (
     IsAdmin,
     IsStudent,
@@ -1646,4 +1653,136 @@ def live_bus_location(request):
         return Response({"detail": f"Tracker error: {str(e)}"}, status=502)
 
 
-  
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def download_transport_card(request):
+    profile = StudentProfile.objects.filter(user=request.user).first()
+    if not profile:
+        return Response({"detail": "Student profile not found"}, status=404)
+
+    active_semester = Semester.objects.filter(is_active=True).first()
+    if not active_semester:
+        return Response({"detail": "No active semester"}, status=404)
+
+    # Get registration info
+    registration = SemesterRegistration.objects.filter(
+        student=profile,
+        semester=active_semester,
+    ).select_related("route", "stop").first()
+
+    transport_reg = TransportRegistration.objects.filter(
+        student=profile,
+        semester=active_semester,
+    ).select_related("route", "stop").first()
+
+    # Get seat & bus info
+    seat_number = None
+    bus_number = None
+    route_name = None
+    stop_name = None
+
+    if registration:
+        seat_obj = SeatAllocation.objects.select_related(
+            "route_assignment__bus"
+        ).filter(registration=registration).first()
+        if seat_obj:
+            seat_number = seat_obj.seat_number
+            bus_number = seat_obj.route_assignment.bus.bus_number
+        route_name = registration.route.name if registration.route else None
+        stop_name = registration.stop.name if registration.stop else None
+    elif transport_reg:
+        assignment = RouteAssignment.objects.select_related("bus").filter(
+            route=transport_reg.route,
+            semester=active_semester,
+            is_active=True,
+        ).first()
+        if assignment:
+            bus_number = assignment.bus.bus_number
+        route_name = transport_reg.route.name if transport_reg.route else None
+        stop_name = transport_reg.stop.name if transport_reg.stop else None
+
+    # Build PDF in memory
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=2*cm,
+        leftMargin=2*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm,
+    )
+
+    styles = getSampleStyleSheet()
+    center_style = ParagraphStyle("center", parent=styles["Normal"], alignment=TA_CENTER)
+    title_style = ParagraphStyle("title", parent=styles["Title"], alignment=TA_CENTER, fontSize=20)
+    subtitle_style = ParagraphStyle("subtitle", parent=styles["Normal"], alignment=TA_CENTER, fontSize=12, textColor=colors.grey)
+
+    story = []
+
+    # Header
+    story.append(Paragraph("FAST NUCES", title_style))
+    story.append(Paragraph("Transport Management System", subtitle_style))
+    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph("STUDENT TRANSPORT CARD", ParagraphStyle(
+        "cardtitle", parent=styles["Heading1"], alignment=TA_CENTER,
+        fontSize=16, textColor=colors.HexColor("#1a3c5e")
+    )))
+    story.append(Spacer(1, 0.8*cm))
+
+    # Info table
+    data = [
+        ["FIELD", "DETAILS"],
+        ["Student Name", profile.user.get_full_name() or profile.user.username],
+        ["Roll Number", profile.roll_number],
+        ["Department", profile.department],
+        ["Batch", profile.batch],
+        ["Semester", active_semester.name],
+        ["Route", route_name or "N/A"],
+        ["Stop", stop_name or "N/A"],
+        ["Bus Number", bus_number or "N/A"],
+        ["Seat Number", str(seat_number) if seat_number else "Not Allocated"],
+        ["Status", "APPROVED" if (registration or transport_reg) else "N/A"],
+    ]
+
+    table = Table(data, colWidths=[6*cm, 10*cm])
+    table.setStyle(TableStyle([
+        # Header row
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a3c5e")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 12),
+        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+
+        # Data rows
+        ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 1), (-1, -1), 11),
+        ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f5f8fc")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#eef3fa")]),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("PADDING", (0, 0), (-1, -1), 10),
+
+        # Border
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+        ("BOX", (0, 0), (-1, -1), 1.5, colors.HexColor("#1a3c5e")),
+    ]))
+
+    story.append(table)
+    story.append(Spacer(1, 1*cm))
+
+    # Footer note
+    story.append(Paragraph(
+        "This card is valid for the current semester only. Please carry it while using university transport.",
+        ParagraphStyle("footer", parent=styles["Normal"], alignment=TA_CENTER,
+                       fontSize=9, textColor=colors.grey)
+    ))
+
+    doc.build(story)
+    buffer.seek(0)
+
+    filename = f"transport_card_{profile.roll_number}_{active_semester.name.replace(' ', '_')}.pdf"
+    response = HttpResponse(buffer, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
