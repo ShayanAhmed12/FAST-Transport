@@ -142,7 +142,7 @@ function Signup() {
                 <input
                   name="username"
                   type="text"
-                  placeholder="e.g. ali_khan"
+                  placeholder="e.g. Shayan Bhai"
                   value={formData.username}
                   onChange={handleChange}
                   required
