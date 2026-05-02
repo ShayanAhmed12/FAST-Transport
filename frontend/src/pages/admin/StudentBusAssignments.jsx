@@ -92,7 +92,7 @@ function StudentBusAssignmentsPage() {
             onClick={() => handleReassign(row)}
             disabled={busy || !sel || same || noSeat}
           >
-            {busy ? "Changing…" : "Change Seat"}
+            {busy ? "Changing…" : "Change Bus"}
           </button>
         );
       },
@@ -102,7 +102,7 @@ function StudentBusAssignmentsPage() {
   return (
     <PageShell role="staff" title="Admin — Student Bus Assignments">
       <PageTitle sub="Reassign students to a different bus if needed.">Student Bus Assignments</PageTitle>
-      <SectionBlock title="Update Existing Seats" sub="Change bus/seat for students who already have an allocated seat.">
+      <SectionBlock title="Update Existing Seats" sub="Change bus for students who already have an allocated seat.">
         {loading ? <Spinner /> : <Table columns={columns} rows={allocatedRows} emptyMessage="No current seat allocations." />}
       </SectionBlock>
     </PageShell>
