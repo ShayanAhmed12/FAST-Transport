@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import PageShell, { PageTitle, ContentCard } from "../../components/PageShell";
 import { Spinner, DetailRow, Banner, ValidatedInput } from "../../components/ui";
@@ -183,9 +184,18 @@ function OTPInput({ emailHint, onVerify, onResend }) {
 
 // ── Success overlay ───────────────────────────────────────────────────────────
 function SuccessCard({ amount, onClose }) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(11,45,66,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, backdropFilter: "blur(4px)" }}>
-      <div style={{ background: "#fff", borderRadius: radius.xl, padding: "2.5rem 2rem", maxWidth: "320px", width: "90%", textAlign: "center", animation: "popIn 0.5s cubic-bezier(.34,1.56,.64,1) both" }}>
+  return createPortal(
+    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: 0,
+      background: "rgba(11,45,66,0.55)",
+      backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999,
+    }}>
+      <div style={{ background: "#fff", borderRadius: radius.xl, padding: "2.5rem 2rem",
+        maxWidth: "340px", width: "90%", textAlign: "center",
+        animation: "popIn 0.5s cubic-bezier(.34,1.56,.64,1) both",
+        boxShadow: "0 32px 80px rgba(11,45,66,0.3)",
+      }}>
         <div style={{ width: "80px", height: "80px", margin: "0 auto 1.5rem" }}>
           <svg viewBox="0 0 80 80" width="80" height="80">
             <circle cx="40" cy="40" r="38" fill={colors.successBg} stroke={colors.successText} strokeWidth="1.5" />
@@ -203,13 +213,16 @@ function SuccessCard({ amount, onClose }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontSize: "13px", color: colors.textSecondary }}>Status</span>
-            <span style={{ fontSize: "12px", fontWeight: "600", background: colors.successBg, color: colors.successText, padding: "2px 10px", borderRadius: "20px" }}>Paid & Verified</span>
+            <span style={{ fontSize: "12px", fontWeight: "600", background: colors.successBg, color: colors.successText, padding: "2px 10px", borderRadius: "20px" }}>
+              Paid & Verified
+            </span>
           </div>
         </div>
         <button onClick={onClose} style={{ ...btn.primary, background: colors.successText, width: "100%", padding: "10px" }}>Done</button>
       </div>
       <style>{`@keyframes popIn { 0%{transform:scale(0.4);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }`}</style>
-    </div>
+    </div>,
+    document.body                          
   );
 }
 
@@ -283,6 +296,13 @@ function ChallanPage() {
             </button>
           </div>
         )}
+        {/*
+        <button
+          onClick={() => setShowSuccess(true)}
+          style={{ ...btn.ghost, marginTop: "12px", fontSize: "12px" }}
+        >
+          [DEV] Test Success Card
+        </button>  */} 
       </div>
 
       {!isPaid && step >= 1 && step <= 2 && <StepIndicator current={step - 1} />}

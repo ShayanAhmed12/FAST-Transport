@@ -39,10 +39,14 @@ function StudentChallanPage() {
             <DetailRow label="Route"    value={registration.route_name} />
             <DetailRow label="Stop"     value={registration.stop_name} />
             <DetailRow label="Semester" value={registration.semester_name} />
-            <DetailRow label="Status"   value={
+            <DetailRow label="Status" value={
               <Pill
                 label={registration.status}
-                variant={registration.status === "Approved" ? "success" : registration.status === "Rejected" ? "danger" : "warning"}
+                variant={
+                  registration.status?.toLowerCase() === "approved" ? "success"
+                  : registration.status?.toLowerCase() === "rejected" ? "danger"
+                  : "warning"
+                }
               />
             } />
             <div style={{ marginTop: "16px" }}>
@@ -57,13 +61,17 @@ function StudentChallanPage() {
               <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Payment Status</p>
               <Pill
                 label={registration.status}
-                variant={registration.status === "Approved" ? "success" : registration.status === "Rejected" ? "danger" : "warning"}
+                variant={
+                  registration.status?.toLowerCase() === "approved" ? "success"
+                  : registration.status?.toLowerCase() === "rejected" ? "danger"
+                  : "warning"
+                }
               />
             </div>
             <div style={{ borderTop: `1px solid ${colors.borderLight}`, paddingTop: "16px" }}>
               <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>What's Next?</p>
               <p style={{ margin: 0, fontSize: "13px", color: colors.textSecondary, lineHeight: 1.7 }}>
-                {registration.status === "Approved"
+                {registration.status?.toLowerCase() === "approved"
                   ? "Your fee has been verified and your seat is confirmed for this semester."
                   : "Pay your challan to complete your transport registration. Your seat will be allocated after admin verification."}
               </p>
