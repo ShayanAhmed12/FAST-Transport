@@ -661,33 +661,31 @@ class RouteChangeRequestViewSet(viewsets.ModelViewSet):
         ).order_by("-requested_at")
  
     def perform_create(self, serializer):
-        """Student submits a route change request — route is auto-determined from stop."""
         user = self.request.user
         profile = StudentProfile.objects.filter(user=user).first()
         if not profile:
             raise ValidationError("Student profile not found.")
- 
-        requested_route = serializer.validated_data.get("requested_route")
+
         requested_stop = serializer.validated_data.get("requested_stop")
- 
-        # Get the student's active semester registration
+
         registration = SemesterRegistration.objects.filter(
             student=profile,
             semester__is_active=True,
         ).first()
         if not registration:
             raise ValidationError("No active semester registration found.")
- 
-        if requested_route and registration.route == requested_route:
-            raise ValidationError("You are already on this route.")
- 
+
+        # Block if they pick the exact same stop they already have
+        if requested_stop and registration.stop == requested_stop:
+            raise ValidationError("You are already assigned to this stop.")
+
         # Block duplicate pending requests
         if RouteChangeRequest.objects.filter(
             registration=registration,
             status="Pending",
         ).exists():
             raise ValidationError("You already have a pending route change request.")
- 
+
         serializer.save(
             registration=registration,
             current_route=registration.route,

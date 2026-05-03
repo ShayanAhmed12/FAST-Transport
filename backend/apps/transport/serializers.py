@@ -419,10 +419,13 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True)
     email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True)
+    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = StudentProfile
-        fields = ['username', 'email', 'password', 'roll_number', 'department', 'batch', 'phone', 'address']
+        fields = ['username', 'email', 'password', 'first_name', 'last_name',
+                  'roll_number', 'department', 'batch', 'phone', 'address']
 
     def create(self, validated_data):
         from django.contrib.auth.models import User, Group
@@ -430,28 +433,16 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
         username = validated_data.pop('username')
         email = validated_data.pop('email')
         password = validated_data.pop('password')
+        first_name = validated_data.pop('first_name', '')
+        last_name = validated_data.pop('last_name', '')
 
-        user = User.objects.create_user(username=username, email=email, password=password)
+        user = User.objects.create_user(
+            username=username, email=email, password=password,
+            first_name=first_name, last_name=last_name
+        )
 
-        # Add to Student group automatically
         student_group, _ = Group.objects.get_or_create(name="Student")
         user.groups.add(student_group)
 
         profile = StudentProfile.objects.create(user=user, **validated_data)
         return profile
-    
-    def validate_email(self, value):
-        value = value.lower().strip()
-
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("Email already exists.")
-
-        return value
-    
-    def validate_username(self, value):
-        value = value.strip()
-        from django.contrib.auth.models import User
-        if User.objects.filter(username__iexact=value).exists():
-            raise serializers.ValidationError("Username already exists.")
-        return value
-            

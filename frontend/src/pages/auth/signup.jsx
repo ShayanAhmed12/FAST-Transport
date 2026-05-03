@@ -9,6 +9,8 @@ function Signup() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
     roll_number: "",
@@ -30,12 +32,24 @@ function Signup() {
   const handleNext = (e) => {
     e.preventDefault();
     const nextErrors = {};
-    const u = validateField(formData.username, [{ check: "required", message: "Username is required" }]);
+
+    const u = validateField(formData.username, [
+      { check: "required", message: "Username is required" },
+    ]);
     if (u) nextErrors.username = u;
-    const em = validateField(formData.email, [{ check: "required", message: "Email is required" }, { check: "email", message: "Enter a valid email" }]);
+
+    const em = validateField(formData.email, [
+      { check: "required", message: "Email is required" },
+      { check: "email", message: "Enter a valid email" },
+    ]);
     if (em) nextErrors.email = em;
-    const p = validateField(formData.password, [{ check: "required", message: "Password is required" }, { check: "minLength", arg: 8, message: "Password must be at least 8 characters" }]);
+
+    const p = validateField(formData.password, [
+      { check: "required", message: "Password is required" },
+      { check: "minLength", arg: 8, message: "Password must be at least 8 characters" },
+    ]);
     if (p) nextErrors.password = p;
+
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
@@ -50,14 +64,28 @@ function Signup() {
     setLoading(true);
     setError("");
     setErrors({});
+
     try {
-      // final validation for step 2 fields
       const step2Errors = {};
-      const r = validateField(formData.roll_number, [{ check: "required", message: "Roll number is required" }, { check: "roll", message: "Enter a valid roll number" }]);
+
+      const r = validateField(formData.roll_number, [
+        { check: "required", message: "Roll number is required" },
+        { check: "roll", message: "Enter a valid roll number" },
+      ]);
       if (r) step2Errors.roll_number = r;
-      const ph = formData.phone ? validateField(formData.phone, [{ check: "phone", message: "Enter a valid phone number" }]) : null;
+
+      const ph = formData.phone
+        ? validateField(formData.phone, [
+            { check: "phone", message: "Enter a valid phone number" },
+          ])
+        : null;
       if (ph) step2Errors.phone = ph;
-      if (Object.keys(step2Errors).length) { setErrors(step2Errors); setLoading(false); return; }
+
+      if (Object.keys(step2Errors).length) {
+        setErrors(step2Errors);
+        setLoading(false);
+        return;
+      }
 
       await signup(formData);
       localStorage.setItem("otp_email", formData.email);
@@ -138,11 +166,13 @@ function Signup() {
           {step === 1 && (
             <form onSubmit={handleNext} style={styles.form}>
               <div style={styles.field}>
-                <label style={styles.label}>Username <span style={styles.req}>*</span></label>
+                <label style={styles.label}>
+                  Username <span style={styles.req}>*</span>
+                </label>
                 <input
                   name="username"
                   type="text"
-                  placeholder="e.g. Shayan Bhai"
+                  placeholder="e.g. shayan_22k"
                   value={formData.username}
                   onChange={handleChange}
                   required
@@ -153,8 +183,40 @@ function Signup() {
                 {errors.username && <ErrorText>{errors.username}</ErrorText>}
               </div>
 
+              {/* First Name + Last Name */}
+              <div style={styles.grid}>
+                <div style={styles.field}>
+                  <label style={styles.label}>First Name</label>
+                  <input
+                    name="first_name"
+                    type="text"
+                    placeholder="e.g. Shayan"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    style={styles.input}
+                    onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+                    onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                  />
+                </div>
+                <div style={styles.field}>
+                  <label style={styles.label}>Last Name</label>
+                  <input
+                    name="last_name"
+                    type="text"
+                    placeholder="e.g. Khan"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    style={styles.input}
+                    onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+                    onBlur={(e) => Object.assign(e.target.style, styles.input)}
+                  />
+                </div>
+              </div>
+
               <div style={styles.field}>
-                <label style={styles.label}>Email <span style={styles.req}>*</span></label>
+                <label style={styles.label}>
+                  Email <span style={styles.req}>*</span>
+                </label>
                 <input
                   name="email"
                   type="email"
@@ -170,7 +232,9 @@ function Signup() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>Password <span style={styles.req}>*</span></label>
+                <label style={styles.label}>
+                  Password <span style={styles.req}>*</span>
+                </label>
                 <input
                   name="password"
                   type="password"
@@ -201,7 +265,9 @@ function Signup() {
             <form onSubmit={handleSignup} style={styles.form}>
               <div style={styles.grid}>
                 <div style={styles.field}>
-                  <label style={styles.label}>Roll Number <span style={styles.req}>*</span></label>
+                  <label style={styles.label}>
+                    Roll Number <span style={styles.req}>*</span>
+                  </label>
                   <input
                     name="roll_number"
                     type="text"
@@ -213,6 +279,7 @@ function Signup() {
                     onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                     onBlur={(e) => Object.assign(e.target.style, styles.input)}
                   />
+                  {errors.roll_number && <ErrorText>{errors.roll_number}</ErrorText>}
                 </div>
 
                 <div style={styles.field}>
@@ -255,6 +322,7 @@ function Signup() {
                     onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                     onBlur={(e) => Object.assign(e.target.style, styles.input)}
                   />
+                  {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
                 </div>
               </div>
 
@@ -270,8 +338,6 @@ function Signup() {
                   onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
                   onBlur={(e) => Object.assign(e.target.style, styles.input)}
                 />
-                {errors.roll_number && <ErrorText>{errors.roll_number}</ErrorText>}
-                {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
               </div>
 
               <div style={styles.btnRow}>
@@ -288,9 +354,17 @@ function Signup() {
                 <button
                   type="submit"
                   disabled={loading}
-                  style={loading ? { ...styles.button, ...styles.buttonDisabled, flex: 1 } : { ...styles.button, flex: 1 }}
-                  onMouseEnter={(e) => { if (!loading) Object.assign(e.target.style, { ...styles.buttonHover, flex: 1 }); }}
-                  onMouseLeave={(e) => { if (!loading) Object.assign(e.target.style, { ...styles.button, flex: 1 }); }}
+                  style={
+                    loading
+                      ? { ...styles.button, ...styles.buttonDisabled, flex: 1 }
+                      : { ...styles.button, flex: 1 }
+                  }
+                  onMouseEnter={(e) => {
+                    if (!loading) Object.assign(e.target.style, { ...styles.buttonHover, flex: 1 });
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) Object.assign(e.target.style, { ...styles.button, flex: 1 });
+                  }}
                 >
                   {loading ? <span style={styles.spinner} /> : "Create Account"}
                 </button>
@@ -300,7 +374,9 @@ function Signup() {
 
           <p style={styles.footer}>
             Already have an account?{" "}
-            <Link to="/login" style={styles.link}>Sign in</Link>
+            <Link to="/login" style={styles.link}>
+              Sign in
+            </Link>
           </p>
         </div>
 
