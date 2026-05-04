@@ -5,11 +5,13 @@ import { colors, fonts, shadow } from "../theme";
 function Navbar({ title = "FAST Transport" }) {
   const navigate = useNavigate();
 
-  // Pull user info stored at login
-  const username = localStorage.getItem("username") || "";
   const isStaff  = localStorage.getItem("is_staff") === "true";
-  const initials = username
-    ? username.slice(0, 2).toUpperCase()
+  const fullName = localStorage.getItem("full_name") 
+                || localStorage.getItem("username") 
+                || "";
+
+  const initials = fullName
+    ? fullName.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
     : isStaff ? "AD" : "ST";
 
   const handleLogout = () => {
@@ -19,7 +21,6 @@ function Navbar({ title = "FAST Transport" }) {
 
   return (
     <header style={styles.navbar}>
-      {/* Left: breadcrumb / page title */}
       <div style={styles.left}>
         <div style={styles.titleWrap}>
           <p style={styles.eyebrow}>FAST NUCES · Transport</p>
@@ -27,25 +28,20 @@ function Navbar({ title = "FAST Transport" }) {
         </div>
       </div>
 
-      {/* Right: user chip + logout */}
       <div style={styles.right}>
-        {/* Role badge */}
         <span style={isStaff ? styles.roleAdmin : styles.roleStudent}>
           {isStaff ? "Admin" : "Student"}
         </span>
 
-        {/* Divider */}
         <div style={styles.divider} />
 
-        {/* User avatar + name */}
-        {username && (
+        {fullName && (
           <div style={styles.userChip}>
             <div style={styles.avatar}>{initials}</div>
-            <span style={styles.username}>{username}</span>
+            <span style={styles.username}>{fullName}</span>
           </div>
         )}
 
-        {/* Logout */}
         <button onClick={handleLogout} style={styles.logoutBtn} title="Sign out">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -58,7 +54,6 @@ function Navbar({ title = "FAST Transport" }) {
   );
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
 const styles = {
   navbar: {
     display:        "flex",
@@ -165,13 +160,13 @@ const styles = {
     flexShrink:     0,
   },
   username: {
-    fontSize:  "13px",
-    fontWeight:"600",
-    color:     colors.textPrimary,
-    maxWidth:  "120px",
-    overflow:  "hidden",
+    fontSize:    "13px",
+    fontWeight:  "600",
+    color:       colors.textPrimary,
+    maxWidth:    "140px",
+    overflow:    "hidden",
     textOverflow:"ellipsis",
-    whiteSpace:"nowrap",
+    whiteSpace:  "nowrap",
   },
   logoutBtn: {
     display:      "flex",

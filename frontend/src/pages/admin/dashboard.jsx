@@ -170,14 +170,14 @@ function AdminDashboard() {
   );
 
   const { stats } = data;
-  const username = localStorage.getItem("username") || "Admin";
+  const fullName = localStorage.getItem("full_name") || localStorage.getItem("username") || "Admin";
 
   return (
     <PageShell role="staff" title="Admin Dashboard">
       {/* Welcome header */}
       <div style={styles.welcomeRow}>
         <div>
-          <h2 style={styles.welcomeHeading}>Welcome, {username}</h2>
+          <h2 style={styles.welcomeHeading}>Welcome, {fullName}</h2>
           <p style={styles.welcomeSub}>Here's an overview of the transport system for the current semester.</p>
         </div>
         <div style={styles.dateBadge}>

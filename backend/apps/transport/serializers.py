@@ -23,15 +23,19 @@ from .models import (
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_active', 'role']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name',
+                  'full_name', 'is_active', 'role']
 
     def get_role(self, obj):
-        if obj.is_staff:
-            return "Admin"
-        return "Student"
+        return "Admin" if obj.is_staff else "Student"
+
+    def get_full_name(self, obj):
+        name = f"{obj.first_name} {obj.last_name}".strip()
+        return name if name else obj.username
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
@@ -289,10 +293,15 @@ class WaitlistSerializer(serializers.ModelSerializer):
         read_only_fields = ['added_at']
 
 class ChallanSerializer(serializers.ModelSerializer):
-    student_name = serializers.CharField(source='student.user.username', read_only=True)
+    student_name = serializers.SerializerMethodField()
     semester_name = serializers.CharField(source='registration.semester.name', read_only=True)
     route_name = serializers.CharField(source='registration.route.name', read_only=True)
     stop_name = serializers.CharField(source='registration.stop.name', read_only=True)
+
+    def get_student_name(self, obj):
+        user = obj.student.user
+        name = f"{user.first_name} {user.last_name}".strip()
+        return name if name else user.username
 
     class Meta:
         model = Challan

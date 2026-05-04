@@ -82,7 +82,11 @@ export default function AdminRouteChangeRequests() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
                 <div>
                   <p style={{ margin: "0 0 3px", fontWeight: "600", fontSize: "15px", color: colors.textPrimary }}>
-                    {req.registration?.student?.user?.username}
+                    {(() => {
+                        const u = req.registration?.student?.user;
+                        const name = `${u?.first_name || ""} ${u?.last_name || ""}`.trim();
+                        return name || u?.username || "—";
+                      })()}
                     <span style={{ fontWeight: "400", color: colors.textSecondary, fontSize: "13px" }}>
                       {" "}· {req.registration?.student?.roll_number}
                     </span>

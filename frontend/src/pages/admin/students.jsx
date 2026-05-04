@@ -14,7 +14,13 @@ function StudentsPage() {
 
   const columns = [
     { key: "id", label: "ID" },
-    { key: "username", label: "Username", render: (row) => row.user.username },
+    {
+      key: "full_name", label: "Full Name",
+      render: (row) => {
+        const name = `${row.user.first_name || ""} ${row.user.last_name || ""}`.trim();
+        return name || row.user.username;
+      }
+    },
     { key: "email", label: "Email", render: (row) => row.user.email },
     { key: "roll_number", label: "Roll Number" },
     { key: "batch", label: "Batch" },

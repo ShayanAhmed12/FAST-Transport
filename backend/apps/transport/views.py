@@ -89,12 +89,13 @@ class CurrentUserView(APIView):
 
     def get(self, request):
         user = request.user
-
         return Response({
             "id": user.id,
             "username": user.username,
             "email": user.email,
-            "is_staff": user.is_staff
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "is_staff": user.is_staff,
         })
 
 
@@ -1086,7 +1087,8 @@ class DashboardView(APIView):
             data = {
                 "role": "student",
                 "profile": {
-                    "username": profile.user.username,
+                    "first_name": profile.user.first_name,
+                    "last_name": profile.user.last_name,
                     "roll_number": profile.roll_number,
                     "department": profile.department,
                     "batch": profile.batch,
@@ -1203,7 +1205,7 @@ def get_challan(request, pk):
     )
  
     data = ChallanSerializer(challan).data
-    # ✅ ADDED: expose the registration status so the frontend can show
+    # ADDED: expose the registration status so the frontend can show
     # "waiting for verification" vs "approved" without a separate API call
     data["registration_status"] = registration.status
     return Response(data)
@@ -1308,16 +1310,20 @@ def list_fee_verifications(request):
         "student__user", "semester", "verified_by"
     ).order_by("is_verified", "-created_at")
 
+    def full_name(user):
+        name = f"{user.first_name} {user.last_name}".strip()
+        return name if name else user.username
+
     data = [
         {
             "id": f.id,
             "roll_number": f.student.roll_number,
-            "student_name": f.student.user.username,
+            "student_name": full_name(f.student.user),
             "semester": f.semester.name,
             "amount": str(f.amount),
             "challan_number": f.challan_number,
             "is_verified": f.is_verified,
-            "verified_by": f.verified_by.username if f.verified_by else None,
+            "verified_by": full_name(f.verified_by) if f.verified_by else None,
             "verified_at": f.verified_at,
             "created_at": f.created_at,
         }

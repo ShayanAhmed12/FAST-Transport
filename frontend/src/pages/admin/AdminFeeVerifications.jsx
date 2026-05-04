@@ -23,7 +23,15 @@ function AdminFeeVerifications() {
 
   const columns = [
     { key: "roll_number",    label: "Roll No." },
-    { key: "student_name",   label: "Student" },
+    {
+      key: "student_name", label: "Student",
+      render: (row) => {
+        const u = row.student?.user;
+        if (!u) return row.student_name || "—";
+        const name = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+        return name || u.username || "—";
+      }
+    },
     { key: "semester",       label: "Semester" },
     { key: "challan_number", label: "Challan No." },
     { key: "amount",         label: "Amount" },

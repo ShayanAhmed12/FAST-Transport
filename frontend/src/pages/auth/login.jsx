@@ -27,9 +27,12 @@ function Login() {
       localStorage.setItem("refresh", tokenRes.data.refresh);
 
       const userRes = await getUser();
-      localStorage.setItem("is_staff", userRes.data.is_staff ? "true" : "false");
-      localStorage.setItem("username", userRes.data.username);
-      navigate(userRes.data.is_staff ? "/admin/dashboard" : "/student/dashboard");
+      const d = userRes.data;
+      localStorage.setItem("is_staff", d.is_staff ? "true" : "false");
+      localStorage.setItem("username", d.username);
+      const fullName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
+      localStorage.setItem("full_name", fullName || d.username);
+      navigate(d.is_staff ? "/admin/dashboard" : "/student/dashboard");
     } catch {
       setError("Invalid username or password");
     } finally {

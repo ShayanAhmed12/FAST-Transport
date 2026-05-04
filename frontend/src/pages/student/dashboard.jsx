@@ -93,7 +93,7 @@ function StudentCard({ profile, seat, active_registration }) {
         <div>
           <p style={{ margin: "0 0 4px", fontSize: "9px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Card Holder</p>
           <p style={{ margin: "0 0 4px", fontSize: "20px", fontWeight: "800", color: "#fff", letterSpacing: "0.02em", fontFamily: fonts.heading }}>
-            {profile.username.toUpperCase()}
+            {(`${profile.first_name || ""} ${profile.last_name || ""}`.trim() || profile.roll_number).toUpperCase()}
           </p>
           <p style={{ margin: 0, fontSize: "11px", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
             {profile.roll_number} · {profile.department} · Batch {profile.batch}
@@ -377,7 +377,7 @@ function StudentDashboard() {
           <ContentCard>
             <h3 style={sectionH}>My Profile</h3>
             <DetailRow label="Roll No"    value={profile.roll_number} />
-            <DetailRow label="Username"   value={profile.username} />
+            <DetailRow label="Full Name" value={`${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "—"} />
             <DetailRow label="Department" value={profile.department} />
             <DetailRow label="Batch"      value={profile.batch} />
             <DetailRow label="Phone"      value={profile.phone} />

@@ -132,7 +132,7 @@ class TransportRegistration(models.Model):
 
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="Pending")
 
-    fee_amount = models.DecimalField(max_digits=8, decimal_places=2, default=5000)
+    fee_amount = models.DecimalField(max_digits=8, decimal_places=0, default=5000)
     is_paid = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -157,7 +157,7 @@ class Waitlist(models.Model):
 class FeeVerification(models.Model):
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    amount = models.DecimalField(max_digits=10, decimal_places=0, default=0.0)
     is_verified = models.BooleanField(default=False)
     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     challan_number = models.CharField(max_length=50, default="N/A")
@@ -175,7 +175,7 @@ class Challan(models.Model):
     )
     student = models.ForeignKey("StudentProfile", on_delete=models.CASCADE)
 
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=0)
 
     status = models.CharField(
         max_length=20,

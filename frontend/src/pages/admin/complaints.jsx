@@ -55,7 +55,11 @@ function AdminComplaintsPage() {
       const resolved = isResolved(c.status);
       return {
         ...c,
-        student:      c.submitted_by?.username || "N/A",
+        student: (() => {
+          const u = c.submitted_by;
+          const name = `${u?.first_name || ""} ${u?.last_name || ""}`.trim();
+          return name || u?.username || "N/A";
+        })(),
         status:       <Pill label={resolved ? "Resolved" : "Pending"} variant={resolved ? "success" : "warning"} />,
         submitted_at: formatDateTime(c.created_at),
         resolved_by:  c.resolved_by?.username || "-",
